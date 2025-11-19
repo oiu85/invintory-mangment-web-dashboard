@@ -39,11 +39,15 @@ const SaleDetails = () => {
 
   if (!sale) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
-        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Sale Not Found</h2>
-          <p className="text-gray-600 mb-4">The sale you're looking for doesn't exist.</p>
+      <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center border border-gray-200 dark:border-gray-700">
+          <div className="bg-red-100 dark:bg-red-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sale Not Found</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">The sale you're looking for doesn't exist.</p>
           <Button onClick={() => navigate('/sales')}>Back to Sales</Button>
         </div>
       </div>
@@ -51,40 +55,40 @@ const SaleDetails = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="mb-6">
         <Button variant="secondary" onClick={() => navigate('/sales')}>
           ← Back to Sales
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold text-gray-800">Sale Details</h1>
-          <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full font-semibold">
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Sale Details</h1>
+          <span className="px-4 py-2 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full font-semibold">
             Invoice #{sale.invoice_number}
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Invoice Number</p>
-            <p className="text-lg font-semibold font-mono">{sale.invoice_number}</p>
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Invoice Number</p>
+            <p className="text-lg font-semibold font-mono text-gray-900 dark:text-white">{sale.invoice_number}</p>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Customer Name</p>
-            <p className="text-lg font-semibold">{sale.customer_name}</p>
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Customer Name</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">{sale.customer_name}</p>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Driver</p>
-            <p className="text-lg font-semibold">{sale.driver?.name || sale.driver_name || 'N/A'}</p>
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Driver</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">{sale.driver?.name || sale.driver_name || 'N/A'}</p>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Total Amount</p>
-            <p className="text-2xl font-bold text-green-600">${parseFloat(sale.total_amount).toFixed(2)}</p>
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Amount</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">${parseFloat(sale.total_amount).toFixed(2)}</p>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg md:col-span-2">
-            <p className="text-sm text-gray-600 mb-1">Date & Time</p>
-            <p className="text-lg font-semibold">
+          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg md:col-span-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Date & Time</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {new Date(sale.created_at).toLocaleString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -97,32 +101,32 @@ const SaleDetails = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Items</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+        <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Items</h2>
         <div className="overflow-x-auto">
           <Table
             headers={['Product Name', 'Quantity', 'Unit Price', 'Subtotal']}
             data={sale.items || []}
             renderRow={(item) => (
               <>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">{item.product_name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">{item.product_name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full font-medium">
                     {item.quantity}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${parseFloat(item.price).toFixed(2)}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold text-green-600">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${parseFloat(item.price).toFixed(2)}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold text-green-600 dark:text-green-400">
                   ${parseFloat(item.subtotal).toFixed(2)}
                 </td>
               </>
             )}
           />
         </div>
-        <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
+        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
           <div className="text-right">
-            <p className="text-sm text-gray-600 mb-2">Total Amount</p>
-            <p className="text-3xl font-bold text-green-600">${parseFloat(sale.total_amount).toFixed(2)}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total Amount</p>
+            <p className="text-3xl font-bold text-green-600 dark:text-green-400">${parseFloat(sale.total_amount).toFixed(2)}</p>
           </div>
         </div>
       </div>

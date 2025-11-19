@@ -5,12 +5,17 @@ import Table from '../components/Table';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
 import Input from '../components/Input';
+import Select from '../components/Select';
+import Textarea from '../components/Textarea';
 import Button from '../components/Button';
 import SearchInput from '../components/SearchInput';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useLanguage } from '../context/LanguageContext';
 
 const Products = () => {
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isRTL = language === 'ar';
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -159,7 +164,7 @@ const Products = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">Products</h1>
@@ -186,10 +191,12 @@ const Products = () => {
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.id}</td>
               <td className="px-6 py-4 whitespace-nowrap">
                 {product.image ? (
-                  <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-lg" />
+                  <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-lg border border-gray-200" />
                 ) : (
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                    <span className="text-gray-400">📦</span>
+                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
                   </div>
                 )}
               </td>
@@ -267,31 +274,22 @@ const Products = () => {
             onChange={(e) => setFormData({ ...formData, price: e.target.value })}
             required
           />
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-            <select
-              value={formData.category_id}
-              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select Category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows="3"
-            />
-          </div>
+          <Select
+            label="Category"
+            value={formData.category_id}
+            onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+            options={[
+              { value: '', label: 'Select Category' },
+              ...categories.map((cat) => ({ value: cat.id, label: cat.name }))
+            ]}
+            required
+          />
+          <Textarea
+            label="Description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            rows={3}
+          />
           <Input
             label="Image URL"
             type="url"

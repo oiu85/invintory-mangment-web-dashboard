@@ -6,12 +6,12 @@ const LoadingSpinner = ({ size = 'md', fullScreen = false }) => {
   };
 
   const spinner = (
-    <div className={`${sizes[size]} border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin`}></div>
+    <div className={`${sizes[size]} border-4 border-gray-200 dark:border-gray-700 border-t-blue-500 dark:border-t-blue-400 rounded-full animate-spin`}></div>
   );
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-white dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-90 flex items-center justify-center z-50 backdrop-blur-sm">
         {spinner}
       </div>
     );
@@ -25,4 +25,3 @@ const LoadingSpinner = ({ size = 'md', fullScreen = false }) => {
 };
 
 export default LoadingSpinner;
-

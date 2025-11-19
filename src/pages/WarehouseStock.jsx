@@ -4,12 +4,18 @@ import { useToast } from '../context/ToastContext';
 import Table from '../components/Table';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
+import Select from '../components/Select';
 import Button from '../components/Button';
 import SearchInput from '../components/SearchInput';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { Package, AlertTriangle, AlertCircle, CheckCircle2, TrendingUp } from 'lucide-react';
+import Card from '../components/Card';
+import { useLanguage } from '../context/LanguageContext';
 
 const WarehouseStock = () => {
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isRTL = language === 'ar';
   const [stock, setStock] = useState([]);
   const [filteredStock, setFilteredStock] = useState([]);
   const [products, setProducts] = useState([]);
@@ -108,47 +114,35 @@ const WarehouseStock = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">Warehouse Stock</h1>
-        <p className="text-gray-600">Manage inventory levels in the warehouse with detailed tracking</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">Warehouse Stock</h1>
+        <p className="text-gray-600 dark:text-gray-400">Manage inventory levels in the warehouse with detailed tracking</p>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Items</p>
-              <p className="text-3xl font-bold text-gray-800">{totalItems.toLocaleString()}</p>
-            </div>
-            <div className="bg-blue-100 p-4 rounded-lg">
-              <span className="text-3xl">📦</span>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Low Stock Items</p>
-              <p className="text-3xl font-bold text-red-600">{lowStockCount}</p>
-            </div>
-            <div className="bg-red-100 p-4 rounded-lg">
-              <span className="text-3xl">⚠️</span>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Out of Stock</p>
-              <p className="text-3xl font-bold text-orange-600">{outOfStockCount}</p>
-            </div>
-            <div className="bg-orange-100 p-4 rounded-lg">
-              <span className="text-3xl">🔴</span>
-            </div>
-          </div>
-        </div>
+        <Card
+          title="Total Items"
+          value={totalItems.toLocaleString()}
+          icon={Package}
+          color="blue"
+          subtitle="Items in warehouse"
+        />
+        <Card
+          title="Low Stock Items"
+          value={lowStockCount}
+          icon={AlertTriangle}
+          color="orange"
+          subtitle="Requiring attention"
+        />
+        <Card
+          title="Out of Stock"
+          value={outOfStockCount}
+          icon={AlertCircle}
+          color="red"
+          subtitle="Needs restocking"
+        />
       </div>
 
       <div className="mb-4">
@@ -160,7 +154,7 @@ const WarehouseStock = () => {
         />
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         <Table
           headers={['Product ID', 'Product Name', 'Category', 'Current Stock', 'Status']}
           data={filteredStock}
@@ -213,22 +207,19 @@ const WarehouseStock = () => {
         title="Update Warehouse Stock"
       >
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Product</label>
-            <select
-              value={formData.product_id}
-              onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select Product</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name} {product.warehouse_stock && `(Current: ${product.warehouse_stock.quantity} units)`}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Product"
+            value={formData.product_id}
+            onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+            options={[
+              { value: '', label: 'Select Product' },
+              ...products.map((product) => ({
+                value: product.id,
+                label: `${product.name}${product.warehouse_stock ? ` (Current: ${product.warehouse_stock.quantity} units)` : ''}`
+              }))
+            ]}
+            required
+          />
           <Input
             label="Quantity"
             type="number"

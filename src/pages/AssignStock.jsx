@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
 import { useToast } from '../context/ToastContext';
 import Input from '../components/Input';
+import Select from '../components/Select';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Card from '../components/Card';
+import { AlertTriangle, Package, Users, TrendingUp } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const AssignStock = () => {
   const { showToast } = useToast();
+  const { language } = useLanguage();
+  const isRTL = language === 'ar';
   const [drivers, setDrivers] = useState([]);
   const [products, setProducts] = useState([]);
   const [warehouseStock, setWarehouseStock] = useState([]);
@@ -121,7 +126,7 @@ const AssignStock = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="mb-6">
         <h1 className="text-4xl font-bold text-gray-800 mb-2">Assign Stock to Driver</h1>
         <p className="text-gray-600">Transfer products from warehouse to driver inventory</p>
@@ -132,43 +137,37 @@ const AssignStock = () => {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow-lg p-8">
             <form onSubmit={handleSubmit}>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Driver</label>
-                <select
-                  value={formData.driver_id}
-                  onChange={(e) => setFormData({ ...formData, driver_id: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select Driver</option>
-                  {drivers.map((driver) => (
-                    <option key={driver.id} value={driver.id}>
-                      {driver.name} ({driver.email}) - {driver.total_sales || 0} sales
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Driver"
+                value={formData.driver_id}
+                onChange={(e) => setFormData({ ...formData, driver_id: e.target.value })}
+                options={[
+                  { value: '', label: 'Select Driver' },
+                  ...drivers.map((driver) => ({
+                    value: driver.id,
+                    label: `${driver.name} (${driver.email}) - ${driver.total_sales || 0} sales`
+                  }))
+                ]}
+                required
+              />
               
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product</label>
-                <select
-                  value={formData.product_id}
-                  onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select Product</option>
-                  {products.map((product) => {
+              <Select
+                label="Product"
+                value={formData.product_id}
+                onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+                options={[
+                  { value: '', label: 'Select Product' },
+                  ...products.map((product) => {
                     const stock = warehouseStock.find(s => s.product_id === product.id);
                     const available = stock?.quantity || 0;
-                    return (
-                      <option key={product.id} value={product.id}>
-                        {product.name} - Available: {available} units
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+                    return {
+                      value: product.id,
+                      label: `${product.name} - Available: ${available} units`
+                    };
+                  })
+                ]}
+                required
+              />
 
               <Input
                 label="Quantity to Assign"
@@ -181,14 +180,20 @@ const AssignStock = () => {
               />
 
               {selectedProduct && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    <strong>Available in Warehouse:</strong> {selectedProduct.available_quantity} units
-                  </p>
-                  {parseInt(formData.quantity) > selectedProduct.available_quantity && (
-                    <p className="text-sm text-red-600 mt-1">
-                      ⚠️ Cannot assign more than available stock!
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="w-4 h-4 text-blue-600" />
+                    <p className="text-sm font-medium text-blue-900">
+                      Available in Warehouse: <span className="font-bold">{selectedProduct.available_quantity}</span> units
                     </p>
+                  </div>
+                  {parseInt(formData.quantity) > selectedProduct.available_quantity && (
+                    <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 rounded border border-red-200">
+                      <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                      <p className="text-sm text-red-700">
+                        Cannot assign more than available stock!
+                      </p>
+                    </div>
                   )}
                 </div>
               )}

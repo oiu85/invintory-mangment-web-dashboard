@@ -1,11 +1,28 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import Card from '../components/Card';
 import Table from '../components/Table';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { SalesLineChart, RevenueBarChart, TopDriversChart } from '../components/Chart';
+import { useLanguage } from '../context/LanguageContext';
+import { 
+  Package, 
+  Users, 
+  ShoppingCart, 
+  DollarSign, 
+  TrendingUp, 
+  AlertTriangle,
+  Plus,
+  ArrowRight,
+  Calendar,
+  BarChart3
+} from 'lucide-react';
+import Button from '../components/Button';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const [stats, setStats] = useState({
     total_products: 0,
     total_drivers: 0,
@@ -21,7 +38,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchStats();
-    // Refresh stats every 30 seconds
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -46,68 +62,129 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">Dashboard Overview</h1>
-        <p className="text-gray-600">Welcome back! Here's what's happening with your inventory.</p>
+    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
+      {/* Header Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('dashboard')}</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">{t('welcomeBack')}</p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <Calendar className="w-4 h-4" />
+            <span>{new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          </div>
+        </div>
       </div>
       
       {/* Main Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card
-          title="Total Products"
+          title={t('totalProducts')}
           value={stats.total_products}
-          icon="📦"
+          icon={Package}
           color="blue"
+          subtitle={t('activeProducts')}
         />
         <Card
-          title="Total Drivers"
+          title={t('totalDrivers')}
           value={stats.total_drivers}
-          icon="👤"
+          icon={Users}
           color="green"
+          subtitle={t('activeDrivers')}
         />
         <Card
-          title="Total Sales"
+          title={t('totalSales')}
           value={stats.total_sales}
-          icon="💰"
+          icon={ShoppingCart}
           color="purple"
+          subtitle={t('allTimeSales')}
         />
         <Card
-          title="Total Revenue"
+          title={t('totalRevenue')}
           value={`$${parseFloat(stats.total_revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon="💵"
-          color="yellow"
+          icon={DollarSign}
+          color="orange"
+          subtitle={t('totalRevenueGenerated')}
         />
       </div>
 
-      {/* Today's Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">Today's Performance</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Today's Sales</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.today_sales || 0}</p>
+      {/* Today's Performance & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Today's Performance */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('todaysPerformance')}</h3>
+            </div>
+            <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Live</span>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="border-r border-gray-200 dark:border-gray-700 pr-6">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('salesToday')}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today_sales || 0}</p>
+                <span className="text-sm text-gray-500 dark:text-gray-400">transactions</span>
+              </div>
+              <div className="flex items-center gap-1 mt-2 text-sm text-green-600 dark:text-green-400">
+                <TrendingUp className="w-4 h-4" />
+                <span>Active day</span>
+              </div>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Today's Revenue</p>
-              <p className="text-2xl font-bold text-green-600">
-                ${parseFloat(stats.today_revenue || 0).toFixed(2)}
-              </p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('revenueToday')}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  ${parseFloat(stats.today_revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>Current period</span>
+              </div>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">Quick Actions</h3>
+
+        {/* Quick Actions */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('quickActions')}</h3>
           <div className="space-y-2">
-            <button className="w-full text-left px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
-              📦 Add New Product
+            <button
+              onClick={() => navigate('/products')}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg">
+                  <Plus className="w-4 h-4 text-blue-600 dark:text-blue-300" />
+                </div>
+                <span className="font-medium text-gray-700 dark:text-gray-300">{t('addProduct')}</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition" />
             </button>
-            <button className="w-full text-left px-4 py-2 bg-green-50 hover:bg-green-100 rounded-lg transition">
-              👤 Add New Driver
+            <button
+              onClick={() => navigate('/drivers')}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 dark:bg-green-900 p-2 rounded-lg">
+                  <Users className="w-4 h-4 text-green-600 dark:text-green-300" />
+                </div>
+                <span className="font-medium text-gray-700 dark:text-gray-300">{t('addDriver')}</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition" />
             </button>
-            <button className="w-full text-left px-4 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg transition">
-              📤 Assign Stock
+            <button
+              onClick={() => navigate('/assign-stock')}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-purple-100 dark:bg-purple-900 p-2 rounded-lg">
+                  <Package className="w-4 h-4 text-purple-600 dark:text-purple-300" />
+                </div>
+                <span className="font-medium text-gray-700 dark:text-gray-300">{t('assignStock')}</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition" />
             </button>
           </div>
         </div>
@@ -115,70 +192,87 @@ const Dashboard = () => {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Sales Trend Chart */}
         {stats.sales_by_day && stats.sales_by_day.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Sales Trend (Last 7 Days)</h3>
-            <SalesLineChart data={stats.sales_by_day} />
-          </div>
-        )}
-
-        {/* Revenue Chart */}
-        {stats.sales_by_day && stats.sales_by_day.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Revenue Trend (Last 7 Days)</h3>
-            <RevenueBarChart data={stats.sales_by_day} />
-          </div>
+          <>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('salesTrend')}</h3>
+                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Last 7 Days</span>
+              </div>
+              <SalesLineChart data={stats.sales_by_day} />
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('revenueTrend')}</h3>
+                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Last 7 Days</span>
+              </div>
+              <RevenueBarChart data={stats.sales_by_day} />
+            </div>
+          </>
         )}
       </div>
 
-      {/* Top Drivers Chart */}
-      {stats.top_drivers && stats.top_drivers.length > 0 && (
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Performing Drivers</h3>
-          <TopDriversChart data={stats.top_drivers} />
-        </div>
-      )}
-
-      {/* Low Stock Alert */}
-      {stats.low_stock_products.length > 0 && (
-        <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-red-100 p-3 rounded-lg">
-              <span className="text-2xl">⚠️</span>
+      {/* Top Drivers & Low Stock */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {stats.top_drivers && stats.top_drivers.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('topPerformingDrivers')}</h3>
+              <Button variant="secondary" onClick={() => navigate('/drivers')} className="text-xs">
+                View All
+              </Button>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800">Low Stock Alert</h2>
-              <p className="text-gray-600 text-sm">Products that need restocking</p>
-            </div>
+            <TopDriversChart data={stats.top_drivers} />
           </div>
-          <div className="overflow-x-auto">
-            <Table
-              headers={['Product ID', 'Product Name', 'Current Stock']}
-              data={stats.low_stock_products}
-              renderRow={(item) => (
-                <>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.product_id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">
+        )}
+
+        {/* Low Stock Alert */}
+        {stats.low_stock_products.length > 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border-l-4 border-red-500 border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('lowStockAlert')}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Products requiring immediate attention</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {stats.low_stock_products.slice(0, 5).map((item) => (
+                <div key={item.product_id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">{item.product_name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Product ID: {item.product_id}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300">
                       {item.quantity} units
                     </span>
-                  </td>
-                </>
+                  </div>
+                </div>
+              ))}
+              {stats.low_stock_products.length > 5 && (
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate('/warehouse-stock')}
+                  className="w-full text-sm"
+                >
+                  View All Low Stock Items ({stats.low_stock_products.length})
+                </Button>
               )}
-            />
+            </div>
           </div>
-        </div>
-      )}
-
-      {stats.low_stock_products.length === 0 && (
-        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-          <div className="text-6xl mb-4">✅</div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">All Good!</h3>
-          <p className="text-gray-600">No products are running low on stock.</p>
-        </div>
-      )}
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-8 text-center">
+            <div className="bg-green-100 dark:bg-green-900/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('stockStatusOptimal')}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('noLowStock')}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

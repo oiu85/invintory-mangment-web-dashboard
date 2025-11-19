@@ -5,7 +5,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
       <div className="py-4">
-        <p className="text-gray-700 mb-6">{message}</p>
+        <p className="text-gray-700 dark:text-gray-300 mb-6">{message}</p>
         <div className="flex gap-2 justify-end">
           <Button variant="secondary" onClick={onClose}>
             {cancelText}
@@ -20,4 +20,3 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
 };
 
 export default ConfirmModal;
-

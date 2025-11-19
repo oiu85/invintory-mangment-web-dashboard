@@ -1,50 +1,69 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
+import {
+  LayoutDashboard,
+  Package,
+  Tag,
+  Warehouse,
+  Users,
+  ArrowRightLeft,
+  ShoppingCart,
+  FileText,
+  X
+} from 'lucide-react';
 
 const Sidebar = ({ onClose }) => {
   const location = useLocation();
+  const { t } = useLanguage();
 
   const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/products', label: 'Products', icon: '📦' },
-    { path: '/categories', label: 'Categories', icon: '🏷️' },
-    { path: '/warehouse-stock', label: 'Warehouse Stock', icon: '🏭' },
-    { path: '/drivers', label: 'Drivers', icon: '👤' },
-    { path: '/assign-stock', label: 'Assign Stock', icon: '📤' },
-    { path: '/sales', label: 'Sales', icon: '💰' },
-    { path: '/invoices', label: 'Invoices', icon: '🧾' },
+    { path: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { path: '/products', label: t('products'), icon: Package },
+    { path: '/categories', label: t('categories'), icon: Tag },
+    { path: '/warehouse-stock', label: t('warehouseStock'), icon: Warehouse },
+    { path: '/drivers', label: t('drivers'), icon: Users },
+    { path: '/assign-stock', label: t('assignStock'), icon: ArrowRightLeft },
+    { path: '/sales', label: t('sales'), icon: ShoppingCart },
+    { path: '/invoices', label: t('invoices'), icon: FileText },
   ];
 
   return (
-    <aside className="w-64 bg-gradient-to-b from-gray-800 to-gray-900 text-white min-h-screen p-4 shadow-xl">
-      <div className="flex items-center justify-between mb-6 lg:hidden">
-        <h2 className="text-xl font-bold">Menu</h2>
+    <aside className="w-64 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-r border-gray-200 dark:border-gray-700 min-h-screen shadow-sm relative z-20">
+      <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 lg:hidden">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Menu</h2>
         <button
           onClick={onClose}
-          className="text-gray-300 hover:text-white text-2xl"
+          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
         >
-          ×
+          <X className="w-5 h-5" />
         </button>
       </div>
-      <nav className="space-y-2">
-        {menuItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            onClick={onClose}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-              location.pathname === item.path
-                ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-            }`}
-          >
-            <span className="text-xl">{item.icon}</span>
-            <span className="font-medium">{item.label}</span>
-          </Link>
-        ))}
+      <nav className="p-4 space-y-1">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+          
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={onClose}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                isActive
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} />
+              <span className={`font-medium ${isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );
 };
 
 export default Sidebar;
-
