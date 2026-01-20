@@ -7,9 +7,11 @@ import Button from '../components/Button';
 import SearchInput from '../components/SearchInput';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
+import { useLanguage } from '../context/LanguageContext';
 
 const Invoices = () => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [sales, setSales] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ const Invoices = () => {
       setFilteredSales(response.data);
     } catch (error) {
       console.error('Error fetching sales:', error);
-      showToast('Error loading invoices', 'error');
+      showToast(t('errorLoadingInvoices'), 'error');
     } finally {
       setLoading(false);
     }
@@ -55,7 +57,7 @@ const Invoices = () => {
       setIsInvoiceModalOpen(true);
     } catch (error) {
       console.error('Error fetching invoice:', error);
-      showToast('Error loading invoice', 'error');
+      showToast(t('errorLoadingInvoice'), 'error');
     }
   };
 
@@ -83,10 +85,10 @@ const Invoices = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
       
-      showToast('Invoice downloaded successfully!', 'success');
+      showToast(t('invoiceDownloaded'), 'success');
     } catch (error) {
       console.error('Error downloading invoice:', error);
-      showToast(error.response?.data?.message || 'Error downloading invoice', 'error');
+      showToast(error.response?.data?.message || t('errorDownloadingInvoice'), 'error');
     }
   };
 
@@ -101,22 +103,22 @@ const Invoices = () => {
   return (
     <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">Invoices</h1>
-        <p className="text-gray-600 dark:text-gray-400">View and manage all sales invoices</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleInvoices')}</h1>
+        <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionInvoices')}</p>
       </div>
 
       <div className="mb-4">
         <SearchInput
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by invoice number, customer, or driver..."
+          placeholder={t('searchInvoices')}
           className="max-w-md"
         />
       </div>
 
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <Table
-          headers={['ID', 'Invoice Number', 'Customer', 'Driver', 'Total Amount', 'Items Count', 'Date', 'Actions']}
+          headers={[t('id'), t('invoiceNumber'), t('customer'), t('driver'), t('totalAmount'), t('itemsCount'), t('date'), t('actions')]}
           data={filteredSales}
           renderRow={(sale) => (
             <>
@@ -127,7 +129,7 @@ const Invoices = () => {
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">{sale.customer_name}</td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
-                  {sale.driver?.name || 'N/A'}
+                  {sale.driver?.name || t('nA')}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
@@ -135,7 +137,7 @@ const Invoices = () => {
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-xs font-medium">
-                  {sale.items?.length || 0} items
+                  {sale.items?.length || 0} {t('items')}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
@@ -150,13 +152,13 @@ const Invoices = () => {
           actions={(sale) => (
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => handleViewInvoice(sale)}>
-                View
+                {t('view')}
               </Button>
               <Button variant="success" onClick={() => handleDownloadInvoice(sale.id)}>
-                Download PDF
+                {t('downloadPdf')}
               </Button>
               <Button variant="secondary" onClick={() => navigate(`/sales/${sale.id}`)}>
-                Details
+                {t('details')}
               </Button>
             </div>
           )}
@@ -170,7 +172,7 @@ const Invoices = () => {
           setIsInvoiceModalOpen(false);
           setSelectedSale(null);
         }}
-        title={`Invoice ${selectedSale?.invoice_number || ''}`}
+        title={`${t('invoice')} ${selectedSale?.invoice_number || ''}`}
         size="lg"
       >
         {selectedSale && (
@@ -179,11 +181,11 @@ const Invoices = () => {
             <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">INVOICE</h2>
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('invoice')}</h2>
                   <p className="text-gray-600 dark:text-gray-400">#{selectedSale.invoice_number}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Date</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('date')}</p>
                   <p className="font-semibold text-gray-900 dark:text-white">{new Date(selectedSale.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
@@ -192,26 +194,26 @@ const Invoices = () => {
             {/* Customer & Driver Info */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Customer</h3>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('customer')}</h3>
                 <p className="text-gray-900 dark:text-white">{selectedSale.customer_name}</p>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Driver</h3>
-                <p className="text-gray-900 dark:text-white">{selectedSale.driver?.name || selectedSale.driver_name || 'N/A'}</p>
+                <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('driver')}</h3>
+                <p className="text-gray-900 dark:text-white">{selectedSale.driver?.name || selectedSale.driver_name || t('nA')}</p>
               </div>
             </div>
 
             {/* Items Table */}
             <div>
-              <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">Items</h3>
+              <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">{t('items')}</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Product</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Quantity</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Price</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Subtotal</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">{t('product')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">{t('quantity')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">{t('unitPrice')}</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300">{t('subtotal')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -234,7 +236,7 @@ const Invoices = () => {
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <div className="flex justify-end">
                 <div className="text-right">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Amount</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('totalAmount')}</p>
                   <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                     ${parseFloat(selectedSale.total_amount).toFixed(2)}
                   </p>
@@ -249,14 +251,14 @@ const Invoices = () => {
                 onClick={() => handleDownloadInvoice(selectedSale.sale_id || selectedSale.id)}
                 className="flex-1"
               >
-                Download PDF Invoice
+                {t('downloadPdfInvoice')}
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => navigate(`/sales/${selectedSale.sale_id || selectedSale.id}`)}
                 className="flex-1"
               >
-                View Full Details
+                {t('viewFullDetails')}
               </Button>
             </div>
           </div>

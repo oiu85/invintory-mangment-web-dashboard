@@ -13,7 +13,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 const Categories = () => {
   const { showToast } = useToast();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isRTL = language === 'ar';
   const [categories, setCategories] = useState([]);
   const [filteredCategories, setFilteredCategories] = useState([]);
@@ -52,7 +52,7 @@ const Categories = () => {
       setFilteredCategories(response.data);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      showToast('Error loading categories', 'error');
+      showToast(t('errorLoadingCategories'), 'error');
     } finally {
       setLoading(false);
     }
@@ -90,20 +90,20 @@ const Categories = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
-        showToast('Category updated successfully!', 'success');
+        showToast(t('categoryUpdated'), 'success');
       } else {
         await axiosClient.post('/categories', formDataToSend, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
-        showToast('Category created successfully!', 'success');
+        showToast(t('categoryCreated'), 'success');
       }
       setIsModalOpen(false);
       fetchCategories();
     } catch (error) {
       console.error('Error saving category:', error);
-      showToast(error.response?.data?.message || 'Error saving category', 'error');
+      showToast(error.response?.data?.message || t('errorSavingCategory'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -119,13 +119,13 @@ const Categories = () => {
 
     try {
       await axiosClient.delete(`/categories/${categoryToDelete.id}`);
-      showToast('Category deleted successfully!', 'success');
+      showToast(t('categoryDeleted'), 'success');
       setIsDeleteModalOpen(false);
       setCategoryToDelete(null);
       fetchCategories();
     } catch (error) {
       console.error('Error deleting category:', error);
-      showToast('Error deleting category', 'error');
+      showToast(t('errorDeletingCategory'), 'error');
     }
   };
 
@@ -141,41 +141,41 @@ const Categories = () => {
     <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Categories</h1>
-          <p className="text-gray-600">Organize your products into categories with detailed information</p>
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleCategories')}</h1>
+          <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionCategories')}</p>
         </div>
-        <Button onClick={handleCreate}>+ Add Category</Button>
+        <Button onClick={handleCreate}>{t('addCategory')}</Button>
       </div>
 
       <div className="mb-4">
         <SearchInput
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search categories..."
+          placeholder={t('searchCategories')}
           className="max-w-md"
         />
       </div>
 
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <Table
-          headers={['ID', 'Name', 'Description', 'Products Count', 'Total Value', 'Created']}
+          headers={[t('id'), t('name'), t('description'), t('productsCount'), t('totalValue'), t('created')]}
           data={filteredCategories}
           renderRow={(category) => (
             <>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{category.id}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">{category.name}</td>
-              <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">{category.description || 'N/A'}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                  {category.product_count || 0} products
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{category.id}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">{category.name}</td>
+              <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 max-w-xs">{category.description || t('nA')}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
+                  {category.product_count || 0} {t('products')}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className="font-semibold text-green-600">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <span className="font-semibold text-green-600 dark:text-green-400">
                   ${parseFloat(category.total_value || 0).toFixed(2)}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 {new Date(category.created_at).toLocaleDateString()}
               </td>
             </>
@@ -183,10 +183,10 @@ const Categories = () => {
           actions={(category) => (
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => handleEdit(category)}>
-                Edit
+                {t('edit')}
               </Button>
               <Button variant="danger" onClick={() => handleDeleteClick(category)}>
-                Delete
+                {t('delete')}
               </Button>
             </div>
           )}
@@ -196,27 +196,27 @@ const Categories = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingCategory ? 'Edit Category' : 'Create Category'}
+        title={editingCategory ? t('editCategory') : t('createCategory')}
       >
         <form onSubmit={handleSubmit}>
           <Input
-            label="Name"
+            label={t('categoryName')}
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             required
           />
           <Textarea
-            label="Description"
+            label={t('categoryDescription')}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
           />
           <div className="flex gap-2 mt-4">
             <Button type="submit" disabled={submitting}>
-              {submitting ? 'Saving...' : editingCategory ? 'Update' : 'Create'}
+              {submitting ? t('saving') : editingCategory ? t('update') : t('create')}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
+              {t('cancel')}
             </Button>
           </div>
         </form>
@@ -229,10 +229,10 @@ const Categories = () => {
           setCategoryToDelete(null);
         }}
         onConfirm={handleDelete}
-        title="Delete Category"
-        message={`Are you sure you want to delete "${categoryToDelete?.name}"? This will affect all products in this category.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t('deleteCategory')}
+        message={t('deleteCategoryMessage').replace('{name}', categoryToDelete?.name || '')}
+        confirmText={t('delete')}
+        cancelText={t('cancel')}
         variant="danger"
       />
     </div>

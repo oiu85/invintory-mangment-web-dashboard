@@ -5,9 +5,11 @@ import { useToast } from '../context/ToastContext';
 import Table from '../components/Table';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useLanguage } from '../context/LanguageContext';
 
 const SaleDetails = () => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const [sale, setSale] = useState(null);
@@ -23,7 +25,7 @@ const SaleDetails = () => {
       setSale(response.data);
     } catch (error) {
       console.error('Error fetching sale details:', error);
-      showToast('Error loading sale details', 'error');
+      showToast(t('errorLoadingSales'), 'error');
     } finally {
       setLoading(false);
     }
@@ -46,9 +48,9 @@ const SaleDetails = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Sale Not Found</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">The sale you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/sales')}>Back to Sales</Button>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('saleNotFound')}</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{t('saleNotFoundMessage')}</p>
+          <Button onClick={() => navigate('/sales')}>{t('backToSalesButton')}</Button>
         </div>
       </div>
     );
@@ -58,36 +60,36 @@ const SaleDetails = () => {
     <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="mb-6">
         <Button variant="secondary" onClick={() => navigate('/sales')}>
-          ← Back to Sales
+          {t('backToSales')}
         </Button>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Sale Details</h1>
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-white">{t('pageTitleSaleDetails')}</h1>
           <span className="px-4 py-2 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full font-semibold">
             Invoice #{sale.invoice_number}
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Invoice Number</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('invoiceNumber')}</p>
             <p className="text-lg font-semibold font-mono text-gray-900 dark:text-white">{sale.invoice_number}</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Customer Name</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('customerName')}</p>
             <p className="text-lg font-semibold text-gray-900 dark:text-white">{sale.customer_name}</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Driver</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">{sale.driver?.name || sale.driver_name || 'N/A'}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('driver')}</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">{sale.driver?.name || sale.driver_name || t('nA')}</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Amount</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('totalAmount')}</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">${parseFloat(sale.total_amount).toFixed(2)}</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg md:col-span-2">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Date & Time</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('dateTime')}</p>
             <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {new Date(sale.created_at).toLocaleString('en-US', {
                 year: 'numeric',
@@ -102,10 +104,10 @@ const SaleDetails = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Items</h2>
+        <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">{t('items')}</h2>
         <div className="overflow-x-auto">
           <Table
-            headers={['Product Name', 'Quantity', 'Unit Price', 'Subtotal']}
+            headers={[t('productName'), t('quantity'), t('unitPrice'), t('subtotal')]}
             data={sale.items || []}
             renderRow={(item) => (
               <>
@@ -125,7 +127,7 @@ const SaleDetails = () => {
         </div>
         <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
           <div className="text-right">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total Amount</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{t('totalAmount')}</p>
             <p className="text-3xl font-bold text-green-600 dark:text-green-400">${parseFloat(sale.total_amount).toFixed(2)}</p>
           </div>
         </div>

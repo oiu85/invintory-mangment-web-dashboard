@@ -12,7 +12,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 const Drivers = () => {
   const { showToast } = useToast();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isRTL = language === 'ar';
   const [drivers, setDrivers] = useState([]);
   const [filteredDrivers, setFilteredDrivers] = useState([]);
@@ -56,7 +56,7 @@ const Drivers = () => {
       setFilteredDrivers(response.data);
     } catch (error) {
       console.error('Error fetching drivers:', error);
-      showToast('Error loading drivers', 'error');
+      showToast(t('errorLoadingDrivers'), 'error');
     } finally {
       setLoading(false);
     }
@@ -72,7 +72,7 @@ const Drivers = () => {
       setIsStockModalOpen(true);
     } catch (error) {
       console.error('Error fetching driver stock:', error);
-      showToast('Error fetching driver stock', 'error');
+      showToast(t('errorFetchingStock'), 'error');
     } finally {
       setLoadingStock(false);
     }
@@ -121,7 +121,7 @@ const Drivers = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
-        showToast('Driver updated successfully!', 'success');
+        showToast(t('driverUpdated'), 'success');
         setIsEditModalOpen(false);
       } else {
         // Create
@@ -131,7 +131,7 @@ const Drivers = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
-        showToast('Driver created successfully!', 'success');
+        showToast(t('driverCreated'), 'success');
         setIsAddModalOpen(false);
       }
       setFormData({ name: '', email: '', password: '' });
@@ -139,7 +139,7 @@ const Drivers = () => {
       fetchDrivers();
     } catch (error) {
       console.error('Error saving driver:', error);
-      showToast(error.response?.data?.message || 'Error saving driver', 'error');
+      showToast(error.response?.data?.message || t('errorSavingDriver'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -150,13 +150,13 @@ const Drivers = () => {
 
     try {
       await axiosClient.delete(`/admin/drivers/${driverToDelete.id}`);
-      showToast('Driver deleted successfully!', 'success');
+      showToast(t('driverDeleted'), 'success');
       setIsDeleteModalOpen(false);
       setDriverToDelete(null);
       fetchDrivers();
     } catch (error) {
       console.error('Error deleting driver:', error);
-      showToast('Error deleting driver', 'error');
+      showToast(t('errorDeletingDriver'), 'error');
     }
   };
 
@@ -172,46 +172,46 @@ const Drivers = () => {
     <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Drivers</h1>
-          <p className="text-gray-600">Manage your delivery drivers and their performance</p>
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleDrivers')}</h1>
+          <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionDrivers')}</p>
         </div>
-        <Button onClick={handleAddDriver}>+ Add Driver</Button>
+        <Button onClick={handleAddDriver}>{t('addDriver')}</Button>
       </div>
 
       <div className="mb-4">
         <SearchInput
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search drivers by name or email..."
+          placeholder={t('searchDrivers')}
           className="max-w-md"
         />
       </div>
 
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <Table
-          headers={['ID', 'Name', 'Email', 'Total Sales', 'Total Revenue', 'Stock Items', 'Joined']}
+          headers={[t('id'), t('name'), t('email'), t('totalSales'), t('totalRevenue'), t('stockItems'), t('joined')]}
           data={filteredDrivers}
           renderRow={(driver) => (
             <>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{driver.id}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">{driver.name}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.email}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{driver.id}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">{driver.name}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{driver.email}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
                   {driver.total_sales || 0}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className="font-semibold text-green-600">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <span className="font-semibold text-green-600 dark:text-green-400">
                   ${parseFloat(driver.total_revenue || 0).toFixed(2)}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium">
                   {driver.total_stock_items || 0}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 {new Date(driver.created_at).toLocaleDateString()}
               </td>
             </>
@@ -219,13 +219,13 @@ const Drivers = () => {
           actions={(driver) => (
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => fetchDriverStock(driver.id)}>
-                Stock
+                {t('stock')}
               </Button>
               <Button variant="secondary" onClick={() => handleEdit(driver)}>
-                Edit
+                {t('edit')}
               </Button>
               <Button variant="danger" onClick={() => handleDeleteClick(driver)}>
-                Delete
+                {t('delete')}
               </Button>
             </div>
           )}
@@ -236,7 +236,7 @@ const Drivers = () => {
       <Modal
         isOpen={isStockModalOpen}
         onClose={() => setIsStockModalOpen(false)}
-        title={`Stock for ${selectedDriver?.name || 'Driver'}`}
+        title={t('stockForDriver').replace('{name}', selectedDriver?.name || t('drivers'))}
         size="lg"
       >
         {loadingStock ? (
@@ -248,23 +248,23 @@ const Drivers = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
               </svg>
             </div>
-            <p className="text-gray-500 font-medium">No stock assigned to this driver yet.</p>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">{t('noStockAssigned')}</p>
           </div>
         ) : (
           <Table
-            headers={['Product', 'Category', 'Quantity']}
+            headers={[t('product'), t('category'), t('quantity')]}
             data={driverStock}
             renderRow={(item) => (
               <>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                  {item.product?.name || 'N/A'}
+                  {item.product?.name || t('nA')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.product?.category?.name || 'N/A'}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  {item.product?.category?.name || t('nA')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
-                    {item.quantity} units
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  <span className="px-3 py-1 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full text-sm font-semibold">
+                    {item.quantity} {t('units')}
                   </span>
                 </td>
               </>
@@ -282,24 +282,24 @@ const Drivers = () => {
           setSelectedDriver(null);
           setFormData({ name: '', email: '', password: '' });
         }}
-        title={selectedDriver ? 'Edit Driver' : 'Add New Driver'}
+        title={selectedDriver ? t('editDriver') : t('createDriver')}
       >
         <form onSubmit={handleSubmitDriver}>
           <Input
-            label="Name"
+            label={t('driverName')}
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             required
           />
           <Input
-            label="Email"
+            label={t('driverEmail')}
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             required
           />
           <Input
-            label={selectedDriver ? "New Password (leave empty to keep current)" : "Password"}
+            label={selectedDriver ? t('newPassword') : t('driverPassword')}
             type="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -308,7 +308,7 @@ const Drivers = () => {
           />
           <div className="flex gap-2 mt-4">
             <Button type="submit" disabled={submitting}>
-              {submitting ? 'Saving...' : selectedDriver ? 'Update' : 'Create Driver'}
+              {submitting ? t('saving') : selectedDriver ? t('update') : t('createDriver')}
             </Button>
             <Button
               type="button"
@@ -320,7 +320,7 @@ const Drivers = () => {
                 setFormData({ name: '', email: '', password: '' });
               }}
             >
-              Cancel
+              {t('cancel')}
             </Button>
           </div>
         </form>
@@ -334,10 +334,10 @@ const Drivers = () => {
           setDriverToDelete(null);
         }}
         onConfirm={handleDelete}
-        title="Delete Driver"
-        message={`Are you sure you want to delete "${driverToDelete?.name}"? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t('deleteDriver')}
+        message={t('deleteDriverMessage').replace('{name}', driverToDelete?.name || '')}
+        confirmText={t('delete')}
+        cancelText={t('cancel')}
         variant="danger"
       />
     </div>

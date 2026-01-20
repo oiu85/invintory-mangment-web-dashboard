@@ -10,11 +10,7 @@ const ParticleBackground = () => {
     await loadSlim(engine);
   }, []);
 
-  // Show particles only in dark mode
-  if (!isDark) {
-    return null;
-  }
-
+  // Always call hooks - conditionally render content
   const particlesConfig = useMemo(() => ({
     fullScreen: {
       enable: false,
@@ -122,6 +118,11 @@ const ParticleBackground = () => {
       opacity: 0,
     },
   }), [isDark]);
+
+  // Show particles only in dark mode - but hooks are always called
+  if (!isDark) {
+    return null;
+  }
 
   return (
     <div

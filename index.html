@@ -1,25 +1,33 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>dashboard</title>
-    <!-- Prevent flash of unstyled content by applying theme before React loads -->
+    <!-- Prevent flash of unstyled content by applying theme and language before React loads -->
     <script>
       (function() {
         try {
+          // Apply theme
           const theme = localStorage.getItem('theme');
           const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          const shouldBeDark = theme ? theme === 'dark' : prefersDark;
+          const shouldBeDark = theme === 'dark' ? true : theme === 'light' ? false : prefersDark;
           
           if (shouldBeDark) {
             document.documentElement.classList.add('dark');
           } else {
             document.documentElement.classList.remove('dark');
           }
+
+          // Apply language
+          const language = localStorage.getItem('language');
+          if (language === 'ar' || language === 'en') {
+            document.documentElement.lang = language;
+            document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+          }
         } catch (e) {
-          // Ignore errors
+          // Ignore errors - React will handle it
         }
       })();
     </script>

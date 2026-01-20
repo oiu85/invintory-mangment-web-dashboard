@@ -118,18 +118,18 @@ const Dashboard = () => {
               <BarChart3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('todaysPerformance')}</h3>
             </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">Live</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{t('live')}</span>
           </div>
           <div className="grid grid-cols-2 gap-6">
             <div className="border-r border-gray-200 dark:border-gray-700 pr-6">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('salesToday')}</p>
               <div className="flex items-baseline gap-2">
                 <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today_sales || 0}</p>
-                <span className="text-sm text-gray-500 dark:text-gray-400">transactions</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{t('transactions')}</span>
               </div>
               <div className="flex items-center gap-1 mt-2 text-sm text-green-600 dark:text-green-400">
                 <TrendingUp className="w-4 h-4" />
-                <span>Active day</span>
+                <span>{t('activeDay')}</span>
               </div>
             </div>
             <div>
@@ -140,7 +140,7 @@ const Dashboard = () => {
                 </p>
               </div>
               <div className="flex items-center gap-1 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>Current period</span>
+                <span>{t('currentPeriod')}</span>
               </div>
             </div>
           </div>
@@ -219,7 +219,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('topPerformingDrivers')}</h3>
               <Button variant="secondary" onClick={() => navigate('/drivers')} className="text-xs">
-                View All
+                {t('viewAll')}
               </Button>
             </div>
             <TopDriversChart data={stats.top_drivers} />
@@ -235,7 +235,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('lowStockAlert')}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Products requiring immediate attention</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('productsRequiringAttention')}</p>
               </div>
             </div>
             <div className="space-y-3">
@@ -243,11 +243,11 @@ const Dashboard = () => {
                 <div key={item.product_id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">{item.product_name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Product ID: {item.product_id}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('productId')}: {item.product_id}</p>
                   </div>
                   <div className="text-right">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300">
-                      {item.quantity} units
+                      {item.quantity} {t('units')}
                     </span>
                   </div>
                 </div>
@@ -258,7 +258,7 @@ const Dashboard = () => {
                   onClick={() => navigate('/warehouse-stock')}
                   className="w-full text-sm"
                 >
-                  View All Low Stock Items ({stats.low_stock_products.length})
+                  {t('viewAllLowStockItems')} ({stats.low_stock_products.length})
                 </Button>
               )}
             </div>

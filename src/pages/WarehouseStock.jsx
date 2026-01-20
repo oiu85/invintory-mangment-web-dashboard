@@ -14,7 +14,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 const WarehouseStock = () => {
   const { showToast } = useToast();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isRTL = language === 'ar';
   const [stock, setStock] = useState([]);
   const [filteredStock, setFilteredStock] = useState([]);
@@ -52,7 +52,7 @@ const WarehouseStock = () => {
       setFilteredStock(response.data);
     } catch (error) {
       console.error('Error fetching stock:', error);
-      showToast('Error loading warehouse stock', 'error');
+      showToast(t('errorLoadingStock'), 'error');
     } finally {
       setLoading(false);
     }
@@ -91,10 +91,10 @@ const WarehouseStock = () => {
       });
       setIsModalOpen(false);
       fetchStock();
-      showToast('Stock updated successfully!', 'success');
+      showToast(t('stockUpdated'), 'success');
     } catch (error) {
       console.error('Error updating stock:', error);
-      showToast(error.response?.data?.message || 'Error updating stock', 'error');
+      showToast(error.response?.data?.message || t('errorUpdatingStock'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -116,32 +116,32 @@ const WarehouseStock = () => {
   return (
     <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">Warehouse Stock</h1>
-        <p className="text-gray-600 dark:text-gray-400">Manage inventory levels in the warehouse with detailed tracking</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleWarehouseStock')}</h1>
+        <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionWarehouseStock')}</p>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card
-          title="Total Items"
+          title={t('totalItems')}
           value={totalItems.toLocaleString()}
           icon={Package}
           color="blue"
-          subtitle="Items in warehouse"
+          subtitle={t('itemsInWarehouse')}
         />
         <Card
-          title="Low Stock Items"
+          title={t('lowStockItems')}
           value={lowStockCount}
           icon={AlertTriangle}
           color="orange"
-          subtitle="Requiring attention"
+          subtitle={t('requiringAttention')}
         />
         <Card
-          title="Out of Stock"
+          title={t('outOfStock')}
           value={outOfStockCount}
           icon={AlertCircle}
           color="red"
-          subtitle="Needs restocking"
+          subtitle={t('needsRestocking')}
         />
       </div>
 
@@ -149,40 +149,40 @@ const WarehouseStock = () => {
         <SearchInput
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search products or categories..."
+          placeholder={t('searchProductsOrCategories')}
           className="max-w-md"
         />
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         <Table
-          headers={['Product ID', 'Product Name', 'Category', 'Current Stock', 'Status']}
+          headers={[t('productId'), t('productName'), t('category'), t('currentStock'), t('status')]}
           data={filteredStock}
           renderRow={(item) => {
             const quantity = item.quantity || 0;
             const status = quantity === 0 ? 'out' : quantity < 10 ? 'low' : quantity < 50 ? 'medium' : 'good';
             const statusConfig = {
-              out: { bg: 'bg-red-100', text: 'text-red-800', label: 'Out of Stock' },
-              low: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Low Stock' },
-              medium: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Medium Stock' },
-              good: { bg: 'bg-green-100', text: 'text-green-800', label: 'Good Stock' },
+              out: { bg: 'bg-red-100 dark:bg-red-900/50', text: 'text-red-800 dark:text-red-300', label: t('outOfStockLabel') },
+              low: { bg: 'bg-yellow-100 dark:bg-yellow-900/50', text: 'text-yellow-800 dark:text-yellow-300', label: t('lowStockLabel') },
+              medium: { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-800 dark:text-blue-300', label: t('mediumStock') },
+              good: { bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-800 dark:text-green-300', label: t('goodStock') },
             };
             const statusStyle = statusConfig[status];
 
             return (
               <>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.product_id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                  {item.product?.name || 'N/A'}
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{item.product_id}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">
+                  {item.product?.name || t('nA')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-                    {item.product?.category?.name || 'N/A'}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-xs font-medium">
+                    {item.product?.category?.name || t('nA')}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
-                    {quantity.toLocaleString()} units
+                    {quantity.toLocaleString()} {t('units')}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -195,7 +195,7 @@ const WarehouseStock = () => {
           }}
           actions={(item) => (
             <Button variant="secondary" onClick={() => handleUpdate(item)}>
-              Update
+              {t('update')}
             </Button>
           )}
         />
@@ -204,41 +204,41 @@ const WarehouseStock = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Update Warehouse Stock"
+        title={t('updateWarehouseStock')}
       >
         <form onSubmit={handleSubmit}>
           <Select
-            label="Product"
+            label={t('selectProduct')}
             value={formData.product_id}
             onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
             options={[
-              { value: '', label: 'Select Product' },
+              { value: '', label: t('selectProduct') },
               ...products.map((product) => ({
                 value: product.id,
-                label: `${product.name}${product.warehouse_stock ? ` (Current: ${product.warehouse_stock.quantity} units)` : ''}`
+                label: `${product.name}${product.warehouse_stock ? ` (${t('currentStock')}: ${product.warehouse_stock.quantity} ${t('units')})` : ''}`
               }))
             ]}
             required
           />
           <Input
-            label="Quantity"
+            label={t('quantity')}
             type="number"
             value={formData.quantity}
             onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
             required
             min="0"
           />
-          <div className="bg-blue-50 p-3 rounded-lg mb-4">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> Enter the total quantity you want to set for this product in the warehouse.
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
+            <p className="text-sm text-blue-800 dark:text-blue-300">
+              <strong>{t('note')}:</strong> {t('stockUpdateNote')}
             </p>
           </div>
           <div className="flex gap-2 mt-4">
             <Button type="submit" disabled={submitting}>
-              {submitting ? 'Updating...' : 'Update Stock'}
+              {submitting ? t('updating') : t('updateStock')}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
+              {t('cancel')}
             </Button>
           </div>
         </form>

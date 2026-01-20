@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './pages/ProtectedRoute';
 import Layout from './pages/Layout';
 import Login from './pages/Login';
@@ -18,38 +19,40 @@ import Invoices from './pages/Invoices';
 
 function App() {
   return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Layout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Navigate to="/dashboard" replace />} />
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="products" element={<Products />} />
-                  <Route path="categories" element={<Categories />} />
-                  <Route path="warehouse-stock" element={<WarehouseStock />} />
-                  <Route path="drivers" element={<Drivers />} />
-                  <Route path="assign-stock" element={<AssignStock />} />
-                  <Route path="sales" element={<Sales />} />
-                  <Route path="sales/:id" element={<SaleDetails />} />
-                  <Route path="invoices" element={<Invoices />} />
-                </Route>
-              </Routes>
-            </BrowserRouter>
-          </AuthProvider>
-        </ToastProvider>
-      </LanguageProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <LanguageProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute>
+                        <Layout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<Navigate to="/dashboard" replace />} />
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="products" element={<Products />} />
+                    <Route path="categories" element={<Categories />} />
+                    <Route path="warehouse-stock" element={<WarehouseStock />} />
+                    <Route path="drivers" element={<Drivers />} />
+                    <Route path="assign-stock" element={<AssignStock />} />
+                    <Route path="sales" element={<Sales />} />
+                    <Route path="sales/:id" element={<SaleDetails />} />
+                    <Route path="invoices" element={<Invoices />} />
+                  </Route>
+                </Routes>
+              </BrowserRouter>
+            </AuthProvider>
+          </ToastProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

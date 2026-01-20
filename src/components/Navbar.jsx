@@ -32,8 +32,8 @@ const Navbar = ({ onMenuClick }) => {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Inventory System</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Management Dashboard</p>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('inventorySystem')}</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{t('managementDashboard')}</p>
             </div>
           </div>
         </div>

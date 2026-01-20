@@ -11,7 +11,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 const AssignStock = () => {
   const { showToast } = useToast();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const isRTL = language === 'ar';
   const [drivers, setDrivers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -50,7 +50,7 @@ const AssignStock = () => {
       setDrivers(response.data);
     } catch (error) {
       console.error('Error fetching drivers:', error);
-      showToast('Error loading drivers', 'error');
+      showToast(t('errorLoadingDrivers'), 'error');
     } finally {
       setLoadingData(false);
     }
@@ -62,7 +62,7 @@ const AssignStock = () => {
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
-      showToast('Error loading products', 'error');
+      showToast(t('errorLoadingProducts'), 'error');
     }
   };
 
@@ -79,12 +79,12 @@ const AssignStock = () => {
     e.preventDefault();
     
     if (!selectedProduct) {
-      showToast('Please select a product', 'error');
+      showToast(t('pleaseSelectProduct'), 'error');
       return;
     }
 
     if (parseInt(formData.quantity) > selectedProduct.available_quantity) {
-      showToast(`Insufficient stock! Available: ${selectedProduct.available_quantity} units`, 'error');
+      showToast(t('insufficientStock').replace('{quantity}', selectedProduct.available_quantity.toString()), 'error');
       return;
     }
 
@@ -101,7 +101,7 @@ const AssignStock = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      showToast('Stock assigned successfully!', 'success');
+      showToast(t('stockAssigned'), 'success');
       setFormData({
         driver_id: '',
         product_id: '',
@@ -111,7 +111,7 @@ const AssignStock = () => {
       fetchWarehouseStock();
     } catch (error) {
       console.error('Error assigning stock:', error);
-      showToast(error.response?.data?.message || 'Error assigning stock', 'error');
+      showToast(error.response?.data?.message || t('errorAssigningStock'), 'error');
     } finally {
       setLoading(false);
     }
@@ -128,8 +128,8 @@ const AssignStock = () => {
   return (
     <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
       <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">Assign Stock to Driver</h1>
-        <p className="text-gray-600">Transfer products from warehouse to driver inventory</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleAssignStock')}</h1>
+        <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionAssignStock')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -138,31 +138,31 @@ const AssignStock = () => {
           <div className="bg-white rounded-xl shadow-lg p-8">
             <form onSubmit={handleSubmit}>
               <Select
-                label="Driver"
+                label={t('selectDriver')}
                 value={formData.driver_id}
                 onChange={(e) => setFormData({ ...formData, driver_id: e.target.value })}
                 options={[
-                  { value: '', label: 'Select Driver' },
+                  { value: '', label: t('selectDriver') },
                   ...drivers.map((driver) => ({
                     value: driver.id,
-                    label: `${driver.name} (${driver.email}) - ${driver.total_sales || 0} sales`
+                    label: `${driver.name} (${driver.email}) - ${driver.total_sales || 0} ${t('sales')}`
                   }))
                 ]}
                 required
               />
               
               <Select
-                label="Product"
+                label={t('selectProduct')}
                 value={formData.product_id}
                 onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
                 options={[
-                  { value: '', label: 'Select Product' },
+                  { value: '', label: t('selectProduct') },
                   ...products.map((product) => {
                     const stock = warehouseStock.find(s => s.product_id === product.id);
                     const available = stock?.quantity || 0;
                     return {
                       value: product.id,
-                      label: `${product.name} - Available: ${available} units`
+                      label: `${product.name} - ${t('availableInWarehouse')}: ${available} ${t('units')}`
                     };
                   })
                 ]}
@@ -170,7 +170,7 @@ const AssignStock = () => {
               />
 
               <Input
-                label="Quantity to Assign"
+                label={t('quantityToAssign')}
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
@@ -180,18 +180,18 @@ const AssignStock = () => {
               />
 
               {selectedProduct && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="flex items-center gap-2 mb-2">
-                    <Package className="w-4 h-4 text-blue-600" />
-                    <p className="text-sm font-medium text-blue-900">
-                      Available in Warehouse: <span className="font-bold">{selectedProduct.available_quantity}</span> units
+                    <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-300">
+                      {t('availableInWarehouse')}: <span className="font-bold">{selectedProduct.available_quantity}</span> {t('units')}
                     </p>
                   </div>
                   {parseInt(formData.quantity) > selectedProduct.available_quantity && (
-                    <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 rounded border border-red-200">
-                      <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
-                      <p className="text-sm text-red-700">
-                        Cannot assign more than available stock!
+                    <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+                      <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                      <p className="text-sm text-red-700 dark:text-red-300">
+                        {t('cannotAssignMore')}
                       </p>
                     </div>
                   )}
@@ -199,7 +199,7 @@ const AssignStock = () => {
               )}
 
               <Button type="submit" disabled={loading || (selectedProduct && parseInt(formData.quantity) > selectedProduct.available_quantity)} className="w-full mt-4">
-                {loading ? 'Assigning...' : 'Assign Stock'}
+                {loading ? t('assigning') : t('assignStock')}
               </Button>
             </form>
           </div>
@@ -208,47 +208,47 @@ const AssignStock = () => {
         {/* Info Section */}
         <div className="space-y-6">
           {selectedProduct && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Product Details</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">{t('productDetails')}</h3>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-600">Product Name</p>
-                  <p className="font-semibold">{selectedProduct.name}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('productName')}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedProduct.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Price</p>
-                  <p className="font-semibold text-green-600">${selectedProduct.price}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('price')}</p>
+                  <p className="font-semibold text-green-600 dark:text-green-400">${selectedProduct.price}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Category</p>
-                  <p className="font-semibold">{selectedProduct.category?.name || 'N/A'}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('category')}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{selectedProduct.category?.name || t('nA')}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Available Stock</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('availableStock')}</p>
                   <p className={`font-semibold text-2xl ${
-                    selectedProduct.available_quantity < 10 ? 'text-red-600' : 'text-green-600'
+                    selectedProduct.available_quantity < 10 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
                   }`}>
-                    {selectedProduct.available_quantity} units
+                    {selectedProduct.available_quantity} {t('units')}
                   </p>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Stats</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">{t('quickStats')}</h3>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-600">Total Drivers</p>
-                <p className="text-2xl font-bold text-blue-600">{drivers.length}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('totalDrivers')}</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{drivers.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Products</p>
-                <p className="text-2xl font-bold text-green-600">{products.length}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('totalProducts')}</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{products.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Warehouse Items</p>
-                <p className="text-2xl font-bold text-purple-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('totalWarehouseItems')}</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                   {warehouseStock.reduce((sum, item) => sum + (item.quantity || 0), 0).toLocaleString()}
                 </p>
               </div>
