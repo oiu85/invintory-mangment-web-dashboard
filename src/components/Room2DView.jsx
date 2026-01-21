@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2 } from 'lucide-react';
 
-const Room2DView = ({ room, placements = [] }) => {
+const Room2DView = ({ room, placements = [], compartments = [], layout = null }) => {
   const { isDark } = useTheme();
   const svgRef = useRef(null);
   const [zoom, setZoom] = useState(1);
@@ -185,6 +185,92 @@ const Room2DView = ({ room, placements = [] }) => {
             Room Floor ({parseFloat(room?.width || 0).toFixed(0)} × {parseFloat(room?.depth || 0).toFixed(0)} cm)
           </text>
 
+          {/* Door visualization */}
+          {room?.door && (
+            <g>
+              <rect
+                x={(room.door.x * viewBox.scale) + viewBox.padding + pan.x}
+                y={(room.door.y * viewBox.scale) + viewBox.padding + pan.y}
+                width={room.door.width * viewBox.scale}
+                height={room.door.height * viewBox.scale}
+                fill="#FFA500"
+                fillOpacity="0.7"
+                stroke="#FF8C00"
+                strokeWidth={Math.max(1, 2 / zoom)}
+              />
+              <text
+                x={(room.door.x * viewBox.scale) + viewBox.padding + (room.door.width * viewBox.scale) / 2 + pan.x}
+                y={(room.door.y * viewBox.scale) + viewBox.padding + (room.door.height * viewBox.scale) / 2 + pan.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="text-xs fill-white font-semibold pointer-events-none"
+                style={{ fontSize: `${10 / zoom}px` }}
+              >
+                Door
+              </text>
+            </g>
+          )}
+
+          {/* Compartment boundaries */}
+          {compartments && compartments.length > 0 && compartments.map((compartment, compIndex) => {
+            if (!compartment.boundary) return null;
+            const boundary = compartment.boundary;
+            return (
+              <g key={`compartment-${compIndex}`}>
+                <rect
+                  x={(boundary.x * viewBox.scale) + viewBox.padding + pan.x}
+                  y={(boundary.y * viewBox.scale) + viewBox.padding + pan.y}
+                  width={boundary.width * viewBox.scale}
+                  height={boundary.depth * viewBox.scale}
+                  fill="none"
+                  stroke="#3B82F6"
+                  strokeWidth={Math.max(1, 2 / zoom)}
+                  strokeDasharray="5,5"
+                  opacity="0.6"
+                />
+                {boundary.width * viewBox.scale > 50 && boundary.depth * viewBox.scale > 30 && (
+                  <text
+                    x={(boundary.x * viewBox.scale) + viewBox.padding + (boundary.width * viewBox.scale) / 2 + pan.x}
+                    y={(boundary.y * viewBox.scale) + viewBox.padding - 5 + pan.y}
+                    textAnchor="middle"
+                    className="text-xs fill-blue-600 dark:fill-blue-400 font-semibold pointer-events-none"
+                    style={{ fontSize: `${10 / zoom}px` }}
+                  >
+                    Product {compartment.product_id}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Grid lines (if grid is configured) */}
+          {layout?.grid && layout.grid.columns > 0 && layout.grid.rows > 0 && (
+            <g opacity="0.2">
+              {Array.from({ length: layout.grid.columns + 1 }).map((_, col) => (
+                <line
+                  key={`grid-v-${col}`}
+                  x1={(col * (room?.width || 0) / layout.grid.columns * viewBox.scale) + viewBox.padding + pan.x}
+                  y1={viewBox.padding + pan.y}
+                  x2={(col * (room?.width || 0) / layout.grid.columns * viewBox.scale) + viewBox.padding + pan.x}
+                  y2={(room?.depth || 0) * viewBox.scale + viewBox.padding + pan.y}
+                  stroke={isDark ? "#6B7280" : "#9CA3AF"}
+                  strokeWidth={0.5 / zoom}
+                />
+              ))}
+              {Array.from({ length: layout.grid.rows + 1 }).map((_, row) => (
+                <line
+                  key={`grid-h-${row}`}
+                  x1={viewBox.padding + pan.x}
+                  y1={(row * (room?.depth || 0) / layout.grid.rows * viewBox.scale) + viewBox.padding + pan.y}
+                  x2={(room?.width || 0) * viewBox.scale + viewBox.padding + pan.x}
+                  y2={(row * (room?.depth || 0) / layout.grid.rows * viewBox.scale) + viewBox.padding + pan.y}
+                  stroke={isDark ? "#6B7280" : "#9CA3AF"}
+                  strokeWidth={0.5 / zoom}
+                />
+              ))}
+            </g>
+          )}
+
           {/* Placements */}
           {scaledPlacements.map((placement, index) => {
             // Simplified 2D mode: no rotation, always use original width/depth
@@ -291,6 +377,18 @@ const Room2DView = ({ room, placements = [] }) => {
             <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
             <span className="text-gray-600 dark:text-gray-400">Position (X, Y)</span>
           </div>
+          {room?.door && (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-500 rounded"></div>
+              <span className="text-gray-600 dark:text-gray-400">Door</span>
+            </div>
+          )}
+          {compartments && compartments.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-blue-500 rounded" style={{ background: 'transparent' }}></div>
+              <span className="text-gray-600 dark:text-gray-400">Compartments</span>
+            </div>
+          )}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
           💡 Scroll to zoom | Click and drag to pan | Use buttons to reset

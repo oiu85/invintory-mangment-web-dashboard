@@ -16,24 +16,33 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
   const [products, setProducts] = useState([]);
   const [dimensions, setDimensions] = useState([]);
   const [warehouseStock, setWarehouseStock] = useState([]);
-  const [items, setItems] = useState([{ product_id: '', quantity: 1 }]);
-  const [showAddProductHint, setShowAddProductHint] = useState(true);
-  const [initFromStockEnabled, setInitFromStockEnabled] = useState(false);
+  const [items, setItems] = useState([]);
+  const [showAddProductHint, setShowAddProductHint] = useState(false);
+  const [initFromStockEnabled, setInitFromStockEnabled] = useState(true); // Default to enabled
+  const [showManualForm, setShowManualForm] = useState(false); // Hide manual form by default
   const [initCaps, setInitCaps] = useState({
-    perProductCap: 25,
-    maxTotalItems: 500,
+    perProductCap: null, // No limit - use all stock
+    maxTotalItems: null, // No limit
   });
   const [initPreview, setInitPreview] = useState(null);
   const [options, setOptions] = useState({
-    algorithm: 'laff_maxrects',
+    algorithm: 'compartment', // Default to compartment algorithm
     allow_rotation: false, // Always disabled in simplified 2D mode
     max_layers: null,
     prefer_bottom: true,
     minimize_height: false,
+    grid: {
+      columns: null,
+      rows: null,
+    },
+    column_max_height: null,
   });
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+
+  // Auto-populate from stock when all data is ready (only once on initial load)
+  const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -42,12 +51,14 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [productsResponse, dimensionsResponse] = await Promise.all([
+      const [productsResponse, dimensionsResponse, stockResponse] = await Promise.all([
         axiosClient.get('/products'),
         getAllProductDimensions().catch(() => []),
+        axiosClient.get('/warehouse-stock').catch(() => ({ data: [] })),
       ]);
       setProducts(productsResponse.data);
       setDimensions(Array.isArray(dimensionsResponse) ? dimensionsResponse : []);
+      setWarehouseStock(Array.isArray(stockResponse.data) ? stockResponse.data : []);
     } catch (error) {
       console.error('Error fetching data:', error);
       showToast(t('errorLoadingProducts'), 'error');
@@ -91,8 +102,9 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
   };
 
   const buildInitFromStock = () => {
-    const perProductCap = Math.max(1, parseInt(initCaps.perProductCap) || 25);
-    const maxTotalItems = Math.max(1, parseInt(initCaps.maxTotalItems) || 500);
+    // No caps - use all available stock
+    const perProductCap = initCaps.perProductCap ? parseInt(initCaps.perProductCap) : null;
+    const maxTotalItems = initCaps.maxTotalItems ? parseInt(initCaps.maxTotalItems) : null;
 
     const dimensionByProductId = new Map(
       (dimensions || []).map((d) => [d.product_id, d])
@@ -123,29 +135,52 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
         continue;
       }
 
-      const remaining = maxTotalItems - expandedTotal;
-      if (remaining <= 0) break;
-
-      const cappedQty = Math.min(stockQty, perProductCap, remaining);
-      if (cappedQty <= 0) continue;
-
-      if (cappedQty < stockQty) {
-        excluded.capped.push({ product_id: productId, stock: stockQty, used: cappedQty });
+      // Apply caps if specified
+      let quantityToUse = stockQty;
+      if (perProductCap && quantityToUse > perProductCap) {
+        quantityToUse = perProductCap;
+        excluded.capped.push({ product_id: productId, stock: stockQty, used: quantityToUse });
       }
 
-      included.push({ product_id: String(productId), quantity: cappedQty });
-      expandedTotal += cappedQty;
+      if (maxTotalItems && expandedTotal + quantityToUse > maxTotalItems) {
+        const remaining = maxTotalItems - expandedTotal;
+        if (remaining > 0) {
+          quantityToUse = remaining;
+          excluded.capped.push({ product_id: productId, stock: stockQty, used: quantityToUse });
+        } else {
+          break;
+        }
+      }
+
+      if (quantityToUse <= 0) continue;
+
+      included.push({ product_id: parseInt(productId), quantity: quantityToUse });
+      expandedTotal += quantityToUse;
     }
 
     const preview = {
       included_products: included.length,
       expanded_total: expandedTotal,
-      caps: { perProductCap, maxTotalItems },
+      caps: { perProductCap: perProductCap || 'Unlimited', maxTotalItems: maxTotalItems || 'Unlimited' },
       excluded,
     };
 
     return { included, preview };
   };
+
+  // Auto-populate from stock when all data is ready (only once on initial load)
+  useEffect(() => {
+    if (!hasAutoPopulated && products.length > 0 && dimensions.length > 0 && warehouseStock.length > 0) {
+      // Auto-populate from stock after data is loaded
+      const { included } = buildInitFromStock();
+      if (included.length > 0) {
+        setItems(included);
+        setInitFromStockEnabled(true);
+        setHasAutoPopulated(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products.length, dimensions.length, warehouseStock.length, hasAutoPopulated]);
 
   const populateFromStock = () => {
     const { included, preview } = buildInitFromStock();
@@ -161,6 +196,10 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
   };
 
   const validateItems = () => {
+    if (items.length === 0) {
+      showToast(t('pleaseAddProductsFromStock') || 'Please load products from stock or add manually', 'error');
+      return false;
+    }
     for (const item of items) {
       if (!item.product_id) {
         showToast(t('pleaseSelectProduct'), 'error');
@@ -201,20 +240,68 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
       }
 
       const itemsToSend = Array.from(merged.entries()).map(([product_id, quantity]) => ({
-        product_id,
-        quantity,
+        product_id: parseInt(product_id), // Ensure integer type
+        quantity: parseInt(quantity), // Ensure integer type
       }));
 
+      // Build options object, only including non-null values
+      const optionsToSend = {};
+      
+      if (options.max_layers) {
+        optionsToSend.max_layers = parseInt(options.max_layers);
+      }
+      
+      if (options.prefer_bottom !== undefined && options.prefer_bottom !== null) {
+        optionsToSend.prefer_bottom = Boolean(options.prefer_bottom);
+      }
+      
+      if (options.minimize_height !== undefined && options.minimize_height !== null) {
+        optionsToSend.minimize_height = Boolean(options.minimize_height);
+      }
+      
+      if (options.column_max_height) {
+        optionsToSend.column_max_height = parseFloat(options.column_max_height);
+      }
+
+      // Only include grid if at least one value is set
+      if (options.grid && (options.grid.columns || options.grid.rows)) {
+        optionsToSend.grid = {};
+        if (options.grid.columns) {
+          optionsToSend.grid.columns = parseInt(options.grid.columns);
+        }
+        if (options.grid.rows) {
+          optionsToSend.grid.rows = parseInt(options.grid.rows);
+        }
+      }
+
+      // Validate items before sending
+      if (itemsToSend.length === 0) {
+        showToast(t('pleaseAddProductsFromStock') || 'Please add at least one product to generate a layout', 'error');
+        setSubmitting(false);
+        return;
+      }
+
+      // Ensure all product_ids are valid integers
+      const validItems = itemsToSend.filter(item => {
+        const pid = parseInt(item.product_id);
+        const qty = parseInt(item.quantity);
+        return !isNaN(pid) && pid > 0 && !isNaN(qty) && qty > 0;
+      });
+
+      if (validItems.length === 0) {
+        showToast(t('invalidProductData') || 'Invalid product data. Please check your selections.', 'error');
+        setSubmitting(false);
+        return;
+      }
+
       const data = {
-        algorithm: options.algorithm,
-        allow_rotation: options.allow_rotation,
-        items: itemsToSend,
-        options: {
-          max_layers: options.max_layers ? parseInt(options.max_layers) : null,
-          prefer_bottom: options.prefer_bottom,
-          minimize_height: options.minimize_height,
-        },
+        algorithm: options.algorithm || 'compartment',
+        allow_rotation: options.allow_rotation || false,
+        items: validItems,
+        options: optionsToSend,
       };
+
+      console.log('Sending layout generation request:', JSON.stringify(data, null, 2));
 
       const response = await generateLayout(roomId, data);
       setResult(response);
@@ -225,7 +312,36 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
       }
     } catch (error) {
       console.error('Error generating layout:', error);
-      showToast(error.response?.data?.message || error.response?.data?.error || t('errorGeneratingLayout'), 'error');
+      console.error('Error details:', error.response?.data);
+      console.error('Error response:', error.response);
+      
+      // Log validation errors if present
+      if (error.response?.data?.errors) {
+        console.error('Validation errors:', JSON.stringify(error.response.data.errors, null, 2));
+      }
+      
+      // Show detailed error message
+      let errorMessage = t('errorGeneratingLayout');
+      
+      if (error.response?.data) {
+        if (error.response.data.errors) {
+          // Format validation errors
+          const errorObj = error.response.data.errors;
+          const errorKeys = Object.keys(errorObj);
+          if (errorKeys.length > 0) {
+            const firstError = errorObj[errorKeys[0]];
+            errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+          } else {
+            errorMessage = 'Validation error occurred';
+          }
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      }
+      
+      showToast(errorMessage, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -244,62 +360,53 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
   return (
     <div className="space-y-6">
       <form onSubmit={handleGenerate} className="space-y-6">
-        {/* Init from Warehouse Stock */}
-        <div className="bg-white/60 dark:bg-gray-800/40 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Wand2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        {/* Init from Warehouse Stock - Primary Method */}
+        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-lg border-2 border-indigo-200 dark:border-indigo-800 p-6">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <Wand2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
               <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {t('initFromWarehouseStock') || 'Init from Warehouse Stock'}
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {t('initFromWarehouseStockHint') || 'Populate items using warehouse stock (capped for performance)'}
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {t('initFromWarehouseStock') || 'Auto-Populate from Warehouse Stock'}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {t('initFromWarehouseStockHint') || 'Automatically uses all products with stock and dimensions. No limits - uses maximum available stock per product.'}
                 </p>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="init_from_stock"
-                checked={initFromStockEnabled}
-                onChange={(e) => setInitFromStockEnabled(e.target.checked)}
-                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-              />
-              <label htmlFor="init_from_stock" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                {t('enabled') || 'Enabled'}
-              </label>
             </div>
           </div>
 
           {initFromStockEnabled && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <Input
-                label={t('perProductCap') || 'Per-product cap'}
-                type="number"
-                min="1"
-                value={initCaps.perProductCap}
-                onChange={(e) => setInitCaps((prev) => ({ ...prev, perProductCap: e.target.value }))}
-                helpText={t('perProductCapHint') || 'Default 25'}
-              />
-              <Input
-                label={t('maxTotalItems') || 'Max total items'}
-                type="number"
-                min="1"
-                value={initCaps.maxTotalItems}
-                onChange={(e) => setInitCaps((prev) => ({ ...prev, maxTotalItems: e.target.value }))}
-                helpText={t('maxTotalItemsHint') || 'Default 500'}
-              />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label={t('perProductCap') || 'Per-product cap (optional)'}
+                  type="number"
+                  min="1"
+                  value={initCaps.perProductCap || ''}
+                  onChange={(e) => setInitCaps((prev) => ({ ...prev, perProductCap: e.target.value || null }))}
+                  helpText={t('perProductCapHint') || 'Leave empty to use all available stock per product'}
+                  placeholder={t('unlimited') || 'Unlimited - uses all stock'}
+                />
+                <Input
+                  label={t('maxTotalItems') || 'Max total items (optional)'}
+                  type="number"
+                  min="1"
+                  value={initCaps.maxTotalItems || ''}
+                  onChange={(e) => setInitCaps((prev) => ({ ...prev, maxTotalItems: e.target.value || null }))}
+                  helpText={t('maxTotalItemsHint') || 'Leave empty for unlimited total items'}
+                  placeholder={t('unlimited') || 'Unlimited'}
+                />
+              </div>
               <div className="flex gap-2">
                 <Button type="button" variant="secondary" onClick={() => {
                   const { preview } = buildInitFromStock();
                   setInitPreview(preview);
                 }}>
-                  {t('preview') || 'Preview'}
+                  {t('preview') || 'Preview Stock'}
                 </Button>
                 <Button type="button" variant="primary" onClick={populateFromStock}>
-                  {t('populate') || 'Populate'}
+                  {t('loadFromStock') || 'Load All from Stock'}
                 </Button>
               </div>
 
@@ -327,42 +434,41 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
           )}
         </div>
 
-        {/* Items Selection */}
-        <div>
+        {/* Manual Items Selection - Collapsible */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('selectProducts')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('manualProductSelection') || 'Manual Product Selection (Optional)'}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {t('addMultipleProductsHint') || 'You can add multiple products to optimize space utilization'}
-                <br />
-                <span className="text-xs text-blue-600 dark:text-blue-400">
-                  {t('simplified2DMode') || 'Simplified 2D mode: Products will be placed on floor only (no rotation, no stacking)'}
-                </span>
+                {t('manualSelectionHint') || 'Manually add products if you need to override stock quantities'}
               </p>
             </div>
-            <Button type="button" variant="secondary" onClick={addItem} size="sm" className="flex-shrink-0">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('addProduct')}
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={() => setShowManualForm(!showManualForm)} 
+              size="sm"
+            >
+              {showManualForm ? t('hide') : t('showManualForm')}
             </Button>
           </div>
-          {items.length === 1 && showAddProductHint && (
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <p className="text-sm text-blue-800 dark:text-blue-300">
-                  {t('tipAddMoreProducts') || 'Tip: Click "Add Product" to place multiple products in this room'}
-                </p>
+
+          {showManualForm && (
+            <>
+              <div className="flex justify-end mb-4">
+                <Button type="button" variant="secondary" onClick={addItem} size="sm" className="flex-shrink-0">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('addProduct')}
+                </Button>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowAddProductHint(false)}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          <div className="space-y-4">
+              {items.length === 0 && (
+                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                    {t('noProductsAdded') || 'No products added manually. Use "Load All from Stock" above to auto-populate.'}
+                  </p>
+                </div>
+              )}
+              <div className="space-y-4">
             {items.map((item, index) => {
               const productDim = getProductDimensions(item.product_id);
               const selectedProduct = products.find(p => p.id === parseInt(item.product_id));
@@ -423,7 +529,27 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
                 </div>
               );
             })}
-          </div>
+              </div>
+            </>
+          )}
+
+          {/* Show current items count if items exist */}
+          {items.length > 0 && !showManualForm && (
+            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <p className="text-sm text-green-800 dark:text-green-300">
+                <strong>{items.length}</strong> {t('productsLoaded') || 'products loaded'} ({items.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0)} {t('totalItems') || 'total items'})
+              </p>
+              <Button 
+                type="button" 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setShowManualForm(true)}
+                className="mt-2"
+              >
+                {t('viewOrEdit') || 'View/Edit Products'}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Algorithm Options */}
@@ -435,9 +561,48 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
               value={options.algorithm}
               onChange={(e) => setOptions({ ...options, algorithm: e.target.value })}
               options={[
-                { value: 'laff_maxrects', label: 'LAFF + MaxRects' },
+                { value: 'compartment', label: 'Compartment (Grid-based by Product)' },
+                { value: 'compartment_grid', label: 'Compartment Grid' },
+                { value: 'laff_maxrects', label: 'LAFF + MaxRects (Legacy)' },
               ]}
             />
+            {options.algorithm === 'compartment' || options.algorithm === 'compartment_grid' ? (
+              <div className="space-y-2">
+                <Input
+                  label={t('gridColumns') || 'Grid Columns (optional)'}
+                  type="number"
+                  min="1"
+                  value={options.grid.columns || ''}
+                  onChange={(e) => setOptions({
+                    ...options,
+                    grid: { ...options.grid, columns: e.target.value ? parseInt(e.target.value) : null }
+                  })}
+                  placeholder={t('auto') || 'Auto'}
+                />
+                <Input
+                  label={t('gridRows') || 'Grid Rows (optional)'}
+                  type="number"
+                  min="1"
+                  value={options.grid.rows || ''}
+                  onChange={(e) => setOptions({
+                    ...options,
+                    grid: { ...options.grid, rows: e.target.value ? parseInt(e.target.value) : null }
+                  })}
+                  placeholder={t('auto') || 'Auto'}
+                />
+                <Input
+                  label={t('columnMaxHeight') || 'Column Max Height (cm, optional)'}
+                  type="number"
+                  min="0"
+                  value={options.column_max_height || ''}
+                  onChange={(e) => setOptions({
+                    ...options,
+                    column_max_height: e.target.value ? parseFloat(e.target.value) : null
+                  })}
+                  placeholder={t('roomHeight') || 'Room Height'}
+                />
+              </div>
+            ) : null}
             <div className="flex items-center gap-2 opacity-50">
               <input
                 type="checkbox"
@@ -514,7 +679,7 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
 
         {/* Actions */}
         <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <Button type="submit" disabled={submitting || items.length === 0}>
+          <Button type="submit" disabled={submitting || items.length === 0 || items.every(item => !item.product_id)}>
             {submitting ? t('generatingLayout') : t('generateLayout')}
           </Button>
           {onClose && (

@@ -123,7 +123,7 @@ const ItemStack = ({ placements, roomHeight, productId }) => {
 };
 
 // Room floor component
-const RoomFloor = ({ roomWidth, roomDepth, roomHeight }) => {
+const RoomFloor = ({ roomWidth, roomDepth, roomHeight, door = null }) => {
   const width = roomWidth / 100;
   const depth = roomDepth / 100;
   const height = roomHeight / 100;
@@ -160,12 +160,29 @@ const RoomFloor = ({ roomWidth, roomDepth, roomHeight }) => {
         <boxGeometry args={[width, height, 0.05]} />
         <meshStandardMaterial color="#9CA3AF" opacity={0.1} transparent />
       </mesh>
+
+      {/* Door visualization */}
+      {door && (
+        <group>
+          <mesh
+            position={[
+              (door.x / 100) + (door.width / 100) / 2,
+              (door.height / 100) / 2,
+              door.wall === 'north' ? 0.05 : door.wall === 'south' ? depth - 0.05 : (door.y / 100) + (door.depth / 100) / 2
+            ]}
+            rotation={door.wall === 'east' || door.wall === 'west' ? [0, Math.PI / 2, 0] : [0, 0, 0]}
+          >
+            <boxGeometry args={[door.width / 100, door.height / 100, 0.15]} />
+            <meshStandardMaterial color="#FFA500" opacity={0.8} transparent />
+          </mesh>
+        </group>
+      )}
     </group>
   );
 };
 
 // Scene component
-const Scene = ({ room, placements }) => {
+const Scene = ({ room, placements, door = null }) => {
   const controlsRef = useRef();
   const roomWidth = parseFloat(room?.width || 0) / 100;
   const roomDepth = parseFloat(room?.depth || 0) / 100;
@@ -228,6 +245,7 @@ const Scene = ({ room, placements }) => {
         roomWidth={parseFloat(room?.width || 0)}
         roomDepth={parseFloat(room?.depth || 0)}
         roomHeight={parseFloat(room?.height || 0)}
+        door={door}
       />
 
       {/* Placements grouped into stacks */}
@@ -276,7 +294,7 @@ const Scene = ({ room, placements }) => {
   );
 };
 
-const Room3DView = ({ room, placements = [] }) => {
+const Room3DView = ({ room, placements = [], door = null }) => {
   const { isDark } = useTheme();
 
   if (!room || !placements || placements.length === 0) {
@@ -307,7 +325,7 @@ const Room3DView = ({ room, placements = [] }) => {
           }}
           camera={{ fov: 55, near: 0.1, far: 1000 }}
         >
-          <Scene room={room} placements={placements} />
+          <Scene room={room} placements={placements} door={door || room?.door} />
         </Canvas>
       </div>
 

@@ -10,7 +10,8 @@ import Table from '../components/Table';
 import ConfirmModal from '../components/ConfirmModal';
 import Room2DView from '../components/Room2DView';
 import Room3DView from '../components/Room3DView';
-import { Building2, Package, TrendingUp, Box, List, History, ArrowLeft, Maximize2, Trash2, Grid3x3, Boxes } from 'lucide-react';
+import DoorConfig from '../components/DoorConfig';
+import { Building2, Package, TrendingUp, Box, List, History, ArrowLeft, Maximize2, Trash2, Grid3x3, Boxes, DoorOpen } from 'lucide-react';
 
 const RoomDetails = () => {
   const { id } = useParams();
@@ -45,8 +46,17 @@ const RoomDetails = () => {
         const layoutData = await getLayout(id);
         // getLayout returns the layout object with layout_data
         if (layoutData && typeof layoutData === 'object' && !layoutData.message && !layoutData.error) {
-          // If layout_data exists, use it; otherwise use the layout object itself
-          setLayout(layoutData.layout_data || layoutData);
+          // Store the full layout object, not just layout_data
+          // This includes compartment_config, grid_columns, grid_rows
+          setLayout({
+            ...layoutData.layout_data,
+            // Include compartment and grid data from the layout object
+            compartments: layoutData.layout_data?.compartments || layoutData.compartment_config?.compartments || [],
+            grid: layoutData.layout_data?.grid || (layoutData.grid_columns && layoutData.grid_rows ? {
+              columns: layoutData.grid_columns,
+              rows: layoutData.grid_rows,
+            } : null),
+          });
         } else {
           setLayout(null);
         }
@@ -137,7 +147,10 @@ const RoomDetails = () => {
         utilization_percentage: layout.utilization,
         total_items_placed: layout.placements?.length || 0,
         total_items_attempted: (layout.placements?.length || 0) + (layout.unplaced_items?.length || 0),
-        algorithm_used: layout.algorithm || 'laff_maxrects',
+        algorithm_used: layout.algorithm || 'compartment',
+        compartment_config: layout.compartments ? { compartments: layout.compartments } : null,
+        grid_columns: layout.grid?.columns || null,
+        grid_rows: layout.grid?.rows || null,
       };
     }
   }
@@ -246,6 +259,11 @@ const RoomDetails = () => {
         />
       </div>
 
+      {/* Door Configuration */}
+      <div className="mb-6">
+        <DoorConfig roomId={id} room={room} onUpdate={fetchRoomData} />
+      </div>
+
       {/* Action Buttons */}
       <div className="flex gap-4 mb-6">
         <Button onClick={() => navigate(`/rooms/${id}/generate-layout`)}>
@@ -346,9 +364,31 @@ const RoomDetails = () => {
                   {/* Visualization */}
                   {placements.length > 0 ? (
                     viewMode === '2d' ? (
-                      <Room2DView room={room} placements={placements} />
+                      <Room2DView 
+                        room={room} 
+                        placements={placements}
+                        compartments={
+                          layout?.compartments || 
+                          (typeof latestLayoutFromRoom?.compartment_config === 'object' && latestLayoutFromRoom?.compartment_config?.compartments) ||
+                          latestLayoutFromRoom?.layout_data?.compartments || 
+                          []
+                        }
+                        layout={{
+                          ...(layout || latestLayoutFromRoom?.layout_data || {}),
+                          grid: layout?.grid || 
+                            (latestLayoutFromRoom?.grid_columns && latestLayoutFromRoom?.grid_rows ? {
+                              columns: latestLayoutFromRoom.grid_columns,
+                              rows: latestLayoutFromRoom.grid_rows,
+                            } : null) ||
+                            latestLayoutFromRoom?.layout_data?.grid || null
+                        }}
+                      />
                     ) : (
-                      <Room3DView room={room} placements={placements} />
+                      <Room3DView 
+                        room={room} 
+                        placements={placements}
+                        door={room?.door}
+                      />
                     )
                   ) : (
                     <div className="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-8 text-center">

@@ -148,3 +148,20 @@ export const deleteProductDimensions = async (productId) => {
   const response = await axiosClient.delete(`/products/${productId}/dimensions`);
   return response.data;
 };
+
+// Door Management
+export const getRoomDoor = async (roomId) => {
+  const response = await axiosClient.get(`/rooms/${roomId}/door`);
+  return response.data;
+};
+
+export const updateRoomDoor = async (roomId, doorData) => {
+  const response = await axiosClient.put(`/rooms/${roomId}/door`, doorData);
+  return response.data;
+};
+
+// Layout Refresh
+export const refreshRoomLayout = async (roomId) => {
+  const response = await axiosClient.post(`/rooms/${roomId}/layout/refresh`);
+  return response.data;
+};

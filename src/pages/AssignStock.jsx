@@ -8,7 +8,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import Card from '../components/Card';
 import { AlertTriangle, Package, Users, TrendingUp, MapPin } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { getProductRoomAvailability } from '../api/roomApi';
+import { getProductRoomAvailability, refreshRoomLayout } from '../api/roomApi';
 
 const AssignStock = () => {
   const { showToast } = useToast();
@@ -131,12 +131,25 @@ const AssignStock = () => {
     formDataToSend.append('room_id', formData.room_id);
 
     try {
-      await axiosClient.post('/assign-stock', formDataToSend, {
+      const response = await axiosClient.post('/assign-stock', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+      
       showToast(t('stockAssigned'), 'success');
+      
+      // Refresh layout if it was updated
+      if (response.data.layout_updated && formData.room_id) {
+        try {
+          await refreshRoomLayout(formData.room_id);
+          showToast('Room layout refreshed', 'success');
+        } catch (layoutError) {
+          console.error('Error refreshing layout:', layoutError);
+          // Don't show error to user, layout refresh is optional
+        }
+      }
+      
       setFormData({
         driver_id: '',
         product_id: '',
