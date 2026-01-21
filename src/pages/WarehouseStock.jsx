@@ -8,9 +8,10 @@ import Select from '../components/Select';
 import Button from '../components/Button';
 import SearchInput from '../components/SearchInput';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Package, AlertTriangle, AlertCircle, CheckCircle2, TrendingUp } from 'lucide-react';
+import { Package, AlertTriangle, AlertCircle, CheckCircle2, TrendingUp, MapPin, Layers } from 'lucide-react';
 import Card from '../components/Card';
 import { useLanguage } from '../context/LanguageContext';
+import { applySuggestion } from '../api/roomApi';
 
 const WarehouseStock = () => {
   const { showToast } = useToast();
@@ -21,12 +22,17 @@ const WarehouseStock = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSuggestionsModalOpen, setIsSuggestionsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [applyingSuggestion, setApplyingSuggestion] = useState(false);
+  const [storageSuggestions, setStorageSuggestions] = useState(null);
+  const [currentProduct, setCurrentProduct] = useState(null);
   const [formData, setFormData] = useState({
     product_id: '',
     quantity: '',
   });
+  const [oldQuantity, setOldQuantity] = useState(0);
 
   useEffect(() => {
     fetchStock();
@@ -72,6 +78,8 @@ const WarehouseStock = () => {
       product_id: stockItem.product_id,
       quantity: stockItem.quantity,
     });
+    setOldQuantity(stockItem.quantity || 0);
+    setCurrentProduct(stockItem.product);
     setIsModalOpen(true);
   };
 
@@ -84,19 +92,62 @@ const WarehouseStock = () => {
     formDataToSend.append('quantity', formData.quantity);
 
     try {
-      await axiosClient.post('/warehouse-stock/update', formDataToSend, {
+      const response = await axiosClient.post('/warehouse-stock/update', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+      
       setIsModalOpen(false);
       fetchStock();
       showToast(t('stockUpdated'), 'success');
+
+      // Check if response includes storage suggestions
+      if (response.data.suggestion_id && response.data.feedback) {
+        setStorageSuggestions({
+          suggestion_id: response.data.suggestion_id,
+          feedback: response.data.feedback,
+          raw_suggestions: response.data.raw_suggestions || [],
+        });
+        setIsSuggestionsModalOpen(true);
+      }
     } catch (error) {
       console.error('Error updating stock:', error);
       showToast(error.response?.data?.message || t('errorUpdatingStock'), 'error');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleApplySuggestion = async (suggestion, roomId) => {
+    setApplyingSuggestion(true);
+    try {
+      const suggestionData = {
+        suggestion_id: storageSuggestions.suggestion_id,
+        room_id: roomId,
+        product_id: parseInt(formData.product_id),
+        x_position: suggestion.x,
+        y_position: suggestion.y,
+        z_position: suggestion.z,
+        quantity_to_place: 1, // Place one item at a time
+        rotation: suggestion.rotation || '0',
+        type: suggestion.type,
+        stack_id: suggestion.stack_id || null,
+        stack_position: suggestion.stack_position || null,
+        stack_base_x: suggestion.stack_base_x || suggestion.x,
+        stack_base_y: suggestion.stack_base_y || suggestion.y,
+        items_below_count: suggestion.items_below_count || 0,
+      };
+
+      await applySuggestion(suggestionData);
+      showToast(t('suggestionApplied'), 'success');
+      setIsSuggestionsModalOpen(false);
+      setStorageSuggestions(null);
+    } catch (error) {
+      console.error('Error applying suggestion:', error);
+      showToast(error.response?.data?.message || t('errorApplyingSuggestion'), 'error');
+    } finally {
+      setApplyingSuggestion(false);
     }
   };
 
@@ -242,6 +293,128 @@ const WarehouseStock = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Storage Suggestions Modal */}
+      <Modal
+        isOpen={isSuggestionsModalOpen}
+        onClose={() => {
+          setIsSuggestionsModalOpen(false);
+          setStorageSuggestions(null);
+        }}
+        title={t('storageSuggestions')}
+        size="xl"
+      >
+        {storageSuggestions && (
+          <div className="space-y-6">
+            {/* Summary */}
+            {storageSuggestions.feedback?.summary && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  {storageSuggestions.feedback.summary}
+                </p>
+              </div>
+            )}
+
+            {/* Room Suggestions */}
+            {storageSuggestions.raw_suggestions && storageSuggestions.raw_suggestions.length > 0 ? (
+              <div className="space-y-4">
+                {storageSuggestions.raw_suggestions.map((roomSuggestion, roomIdx) => (
+                  <div key={roomIdx} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {roomSuggestion.room?.name || `Room #${roomSuggestion.room?.id}`}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {parseFloat(roomSuggestion.room?.width || 0).toFixed(0)} × {parseFloat(roomSuggestion.room?.depth || 0).toFixed(0)} × {parseFloat(roomSuggestion.room?.height || 0).toFixed(0)} cm
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('currentUtilization')}</p>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {parseFloat(roomSuggestion.current_utilization || 0).toFixed(1)}%
+                        </p>
+                        {roomSuggestion.projected_utilization && (
+                          <>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('projectedUtilization')}</p>
+                            <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                              {parseFloat(roomSuggestion.projected_utilization).toFixed(1)}%
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Suggestions List */}
+                    {roomSuggestion.suggestions && roomSuggestion.suggestions.length > 0 && (
+                      <div className="space-y-2">
+                        {roomSuggestion.suggestions.map((suggestion, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-3 rounded-lg border ${
+                              suggestion.type === 'stack'
+                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {suggestion.type === 'stack' ? (
+                                  <Layers className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                ) : (
+                                  <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {suggestion.type === 'stack' ? t('stackType') : t('newSpotType')}
+                                  </p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    {t('position')}: ({parseFloat(suggestion.x || 0).toFixed(1)}, {parseFloat(suggestion.y || 0).toFixed(1)}, {parseFloat(suggestion.z || 0).toFixed(1)})
+                                    {suggestion.stack_position && ` | ${t('stackPosition')}: ${suggestion.stack_position}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleApplySuggestion(suggestion, roomSuggestion.room.id)}
+                                disabled={applyingSuggestion}
+                              >
+                                {applyingSuggestion ? t('applying') : t('applySuggestion')}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {roomSuggestion.unplaced_in_room > 0 && (
+                      <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs text-yellow-800 dark:text-yellow-300">
+                        {roomSuggestion.unplaced_in_room} {t('itemsUnplaced')} {t('inThisRoom')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">{t('noSuggestions')}</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button variant="secondary" onClick={() => {
+                setIsSuggestionsModalOpen(false);
+                setStorageSuggestions(null);
+              }}>
+                {t('dismiss')}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

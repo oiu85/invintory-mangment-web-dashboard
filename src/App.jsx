@@ -16,6 +16,10 @@ import AssignStock from './pages/AssignStock';
 import Sales from './pages/Sales';
 import SaleDetails from './pages/SaleDetails';
 import Invoices from './pages/Invoices';
+import Rooms from './pages/Rooms';
+import RoomDetails from './pages/RoomDetails';
+import RoomLayout from './pages/RoomLayout';
+import ProductDimensions from './pages/ProductDimensions';
 
 function App() {
   return (
@@ -45,6 +49,10 @@ function App() {
                     <Route path="sales" element={<Sales />} />
                     <Route path="sales/:id" element={<SaleDetails />} />
                     <Route path="invoices" element={<Invoices />} />
+                    <Route path="rooms" element={<Rooms />} />
+                    <Route path="rooms/:id" element={<RoomDetails />} />
+                    <Route path="rooms/:id/generate-layout" element={<RoomLayout />} />
+                    <Route path="product-dimensions" element={<ProductDimensions />} />
                   </Route>
                 </Routes>
               </BrowserRouter>

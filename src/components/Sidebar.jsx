@@ -9,6 +9,8 @@ import {
   ArrowRightLeft,
   ShoppingCart,
   FileText,
+  Building2,
+  Ruler,
   X
 } from 'lucide-react';
 
@@ -21,6 +23,8 @@ const Sidebar = ({ onClose }) => {
     { path: '/products', label: t('products'), icon: Package },
     { path: '/categories', label: t('categories'), icon: Tag },
     { path: '/warehouse-stock', label: t('warehouseStock'), icon: Warehouse },
+    { path: '/rooms', label: t('rooms'), icon: Building2 },
+    { path: '/product-dimensions', label: t('productDimensions'), icon: Ruler },
     { path: '/drivers', label: t('drivers'), icon: Users },
     { path: '/assign-stock', label: t('assignStock'), icon: ArrowRightLeft },
     { path: '/sales', label: t('sales'), icon: ShoppingCart },

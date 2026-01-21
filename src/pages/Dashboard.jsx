@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
+import { getRooms } from '../api/roomApi';
 import Card from '../components/Card';
 import Table from '../components/Table';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -16,7 +17,8 @@ import {
   Plus,
   ArrowRight,
   Calendar,
-  BarChart3
+  BarChart3,
+  Building2
 } from 'lucide-react';
 import Button from '../components/Button';
 
@@ -34,11 +36,16 @@ const Dashboard = () => {
     sales_by_day: [],
     top_drivers: [],
   });
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 30000);
+    fetchRooms();
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchRooms();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -50,6 +57,15 @@ const Dashboard = () => {
       console.error('Error fetching stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRooms = async () => {
+    try {
+      const data = await getRooms();
+      setRooms(data);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
     }
   };
 
@@ -78,7 +94,7 @@ const Dashboard = () => {
       </div>
       
       {/* Main Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <Card
           title={t('totalProducts')}
           value={stats.total_products}
@@ -92,6 +108,13 @@ const Dashboard = () => {
           icon={Users}
           color="green"
           subtitle={t('activeDrivers')}
+        />
+        <Card
+          title={t('totalRooms')}
+          value={rooms.length}
+          icon={Building2}
+          color="indigo"
+          subtitle={t('activeRooms')}
         />
         <Card
           title={t('totalSales')}
@@ -183,6 +206,18 @@ const Dashboard = () => {
                   <Package className="w-4 h-4 text-purple-600 dark:text-purple-300" />
                 </div>
                 <span className="font-medium text-gray-700 dark:text-gray-300">{t('assignStock')}</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition" />
+            </button>
+            <button
+              onClick={() => navigate('/rooms')}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-100 dark:bg-indigo-900 p-2 rounded-lg">
+                  <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
+                </div>
+                <span className="font-medium text-gray-700 dark:text-gray-300">{t('viewRooms')}</span>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition" />
             </button>

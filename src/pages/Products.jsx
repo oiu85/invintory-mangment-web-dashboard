@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import { useToast } from '../context/ToastContext';
 import Table from '../components/Table';
@@ -11,14 +12,17 @@ import Button from '../components/Button';
 import SearchInput from '../components/SearchInput';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useLanguage } from '../context/LanguageContext';
+import { getAllProductDimensions } from '../api/roomApi';
 
 const Products = () => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { language, t } = useLanguage();
   const isRTL = language === 'ar';
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [dimensions, setDimensions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -37,7 +41,18 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchDimensions();
   }, []);
+
+  const fetchDimensions = async () => {
+    try {
+      const data = await getAllProductDimensions();
+      setDimensions(Array.isArray(data) ? data : []);
+    } catch (error) {
+      // Dimensions might not exist for all products
+      setDimensions([]);
+    }
+  };
 
   useEffect(() => {
     if (searchTerm) {
@@ -184,7 +199,7 @@ const Products = () => {
 
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <Table
-          headers={[t('id'), t('image'), t('name'), t('price'), t('category'), t('warehouseStock'), t('driverStock'), t('totalSold'), t('description')]}
+          headers={[t('id'), t('image'), t('name'), t('price'), t('category'), t('dimensions'), t('warehouseStock'), t('driverStock'), t('totalSold'), t('description')]}
           data={filteredProducts}
           renderRow={(product) => (
             <>
@@ -208,6 +223,23 @@ const Products = () => {
                 <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
                   {product.category?.name || t('nA')}
                 </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                {(() => {
+                  const productDim = dimensions.find(d => d.product_id === product.id);
+                  if (productDim) {
+                    return (
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full text-xs font-medium">
+                        {parseFloat(productDim.width || 0).toFixed(0)}×{parseFloat(productDim.depth || 0).toFixed(0)}×{parseFloat(productDim.height || 0).toFixed(0)} cm
+                      </span>
+                    );
+                  }
+                  return (
+                    <span className="px-2 py-1 bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 rounded-full text-xs font-medium">
+                      {t('dimensionsMissing')}
+                    </span>
+                  );
+                })()}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -237,6 +269,9 @@ const Products = () => {
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => handleEdit(product)}>
                 {t('edit')}
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/product-dimensions')}>
+                {t('manageDimensions')}
               </Button>
               <Button variant="danger" onClick={() => handleDeleteClick(product)}>
                 {t('delete')}
