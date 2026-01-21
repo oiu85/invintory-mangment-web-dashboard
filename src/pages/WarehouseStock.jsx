@@ -11,7 +11,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { Package, AlertTriangle, AlertCircle, CheckCircle2, TrendingUp, MapPin, Layers } from 'lucide-react';
 import Card from '../components/Card';
 import { useLanguage } from '../context/LanguageContext';
-import { applySuggestion } from '../api/roomApi';
+import { applySuggestion, getRooms } from '../api/roomApi';
 
 const WarehouseStock = () => {
   const { showToast } = useToast();
@@ -28,6 +28,8 @@ const WarehouseStock = () => {
   const [applyingSuggestion, setApplyingSuggestion] = useState(false);
   const [storageSuggestions, setStorageSuggestions] = useState(null);
   const [currentProduct, setCurrentProduct] = useState(null);
+  const [rooms, setRooms] = useState([]);
+  const [selectedRoomId, setSelectedRoomId] = useState('');
   const [formData, setFormData] = useState({
     product_id: '',
     quantity: '',
@@ -37,6 +39,7 @@ const WarehouseStock = () => {
   useEffect(() => {
     fetchStock();
     fetchProducts();
+    fetchRooms();
   }, []);
 
   useEffect(() => {
@@ -73,6 +76,15 @@ const WarehouseStock = () => {
     }
   };
 
+  const fetchRooms = async () => {
+    try {
+      const data = await getRooms();
+      setRooms(data);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    }
+  };
+
   const handleUpdate = (stockItem) => {
     setFormData({
       product_id: stockItem.product_id,
@@ -101,6 +113,45 @@ const WarehouseStock = () => {
       setIsModalOpen(false);
       fetchStock();
       showToast(t('stockUpdated'), 'success');
+
+      // If quantity increased and a room is selected, place the delta into that room
+      const newQuantity = parseInt(formData.quantity);
+      const delta = Math.max(0, newQuantity - oldQuantity);
+      if (delta > 0 && selectedRoomId) {
+        try {
+          const placeResponse = await axiosClient.post('/warehouse-stock/place', {
+            room_id: parseInt(selectedRoomId),
+            product_id: parseInt(formData.product_id),
+            quantity: delta,
+          });
+
+          const placed = placeResponse.data.placed ?? 0;
+          const unplaced = placeResponse.data.unplaced ?? 0;
+
+          const roomName =
+            rooms.find((r) => r.id === parseInt(selectedRoomId))?.name || '';
+
+          if (placed > 0) {
+            showToast(
+              `${placed} ${t('unitsPlacedInRoom')} ${roomName}`,
+              'success'
+            );
+          }
+
+          if (unplaced > 0) {
+            showToast(
+              `${unplaced} ${t('unitsCouldNotBePlacedInRoom')} ${roomName}`,
+              'warning'
+            );
+          }
+        } catch (error) {
+          console.error('Error placing stock into room:', error);
+          showToast(
+            error.response?.data?.message || t('errorPlacingIntoRoom'),
+            'error'
+          );
+        }
+      }
 
       // Check if response includes storage suggestions
       if (response.data.suggestion_id && response.data.feedback) {
@@ -196,13 +247,27 @@ const WarehouseStock = () => {
         />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <SearchInput
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={t('searchProductsOrCategories')}
           className="max-w-md"
         />
+        <div className="flex items-end gap-2">
+          <Select
+            label={t('selectRoomForPlacement')}
+            value={selectedRoomId}
+            onChange={(e) => setSelectedRoomId(e.target.value)}
+            options={[
+              { value: '', label: t('noRoomSelected') },
+              ...rooms.map((room) => ({
+                value: room.id,
+                label: room.name,
+              })),
+            ]}
+          />
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">

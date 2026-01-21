@@ -51,10 +51,12 @@ const ItemBox = ({ placement, roomHeight, layerIndex, totalLayers }) => {
         <boxGeometry args={[displayWidth, layerHeight, displayDepth]} />
         <meshStandardMaterial
           color={adjustedColor}
-          opacity={0.85}
+          opacity={0.9} // Slightly more opaque for better visibility
           transparent
-          metalness={0.2}
-          roughness={0.5}
+          metalness={0.3} // Slightly more metallic for better reflection
+          roughness={0.4} // Smoother surface
+          emissive={adjustedColor} // Subtle glow
+          emissiveIntensity={0.1} // Low emissive for subtle glow
         />
       </mesh>
       
@@ -64,30 +66,31 @@ const ItemBox = ({ placement, roomHeight, layerIndex, totalLayers }) => {
         <lineBasicMaterial color="#000000" opacity={0.4} transparent linewidth={2} />
       </lineSegments>
       
-      {/* Layer number label on top of each box */}
+      {/* Product name label on top of stack (with increased spacing) */}
       {layerIndex === totalLayers - 1 && layerHeight > 0.05 && (
         <Text
-          position={[0, layerHeight / 2 + 0.02, 0]}
-          fontSize={Math.min(0.08, displayWidth / 10)}
+          position={[0, layerHeight / 2 + 0.08, 0]} // Increased from 0.02 to 0.08 for better spacing
+          fontSize={Math.min(0.1, displayWidth / 8)} // Slightly larger font
           color="#FFFFFF"
           anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.01}
+          anchorY="bottom" // Changed to bottom for better positioning
+          outlineWidth={0.015} // Thicker outline for better readability
           outlineColor="#000000"
+          maxWidth={displayWidth * 0.9} // Prevent text overflow
         >
-          {placement.product?.name?.substring(0, 12) || `P${productId}`}
+          {placement.product?.name?.substring(0, 15) || `Product ${productId}`}
         </Text>
       )}
       
-      {/* Layer indicator on side */}
+      {/* Layer indicator on side (with better spacing) */}
       {totalLayers > 1 && (
         <Text
-          position={[displayWidth / 2 + 0.05, layerHeight / 2, 0]}
-          fontSize={0.04}
+          position={[displayWidth / 2 + 0.08, layerHeight / 2, 0]} // Increased spacing from 0.05 to 0.08
+          fontSize={0.05} // Slightly larger
           color="#FFFFFF"
           anchorX="left"
           anchorY="middle"
-          outlineWidth={0.005}
+          outlineWidth={0.008} // Thicker outline
           outlineColor="#000000"
         >
           L{layerIndex + 1}
@@ -163,13 +166,21 @@ const RoomFloor = ({ roomWidth, roomDepth, roomHeight }) => {
 
 // Scene component
 const Scene = ({ room, placements }) => {
+  const controlsRef = useRef();
   const roomWidth = parseFloat(room?.width || 0) / 100;
   const roomDepth = parseFloat(room?.depth || 0) / 100;
   const roomHeight = parseFloat(room?.height || 0) / 100;
 
-  // Calculate camera position to view entire room
+  // Calculate camera position to view entire room (closer initial view)
   const maxDimension = Math.max(roomWidth, roomDepth, roomHeight);
-  const cameraDistance = maxDimension * 2.5;
+  const cameraDistance = maxDimension * 1.8; // Closer initial view (was 2.5)
+
+  // Smooth camera updates for damping
+  useFrame(() => {
+    if (controlsRef.current) {
+      controlsRef.current.update();
+    }
+  });
 
   // Group placements by exact product_id AND exact position (x, y) to create stacks
   // Only items with EXACT same product_id AND EXACT same position are stacked
@@ -205,11 +216,12 @@ const Scene = ({ room, placements }) => {
 
   return (
     <>
-      {/* Enhanced Lighting */}
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 15, 5]} intensity={1.2} castShadow />
-      <directionalLight position={[-10, 10, -10]} intensity={0.6} />
-      <pointLight position={[0, 20, 0]} intensity={0.4} />
+      {/* Enhanced Lighting for better visibility */}
+      <ambientLight intensity={0.7} /> {/* Increased for better base lighting */}
+      <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow /> {/* Brighter main light */}
+      <directionalLight position={[-10, 15, -10]} intensity={0.8} /> {/* Better fill light */}
+      <pointLight position={[0, 25, 0]} intensity={0.6} /> {/* Brighter top light */}
+      <spotLight position={[roomWidth / 2, roomHeight * 1.5, roomDepth / 2]} angle={0.4} intensity={0.5} penumbra={0.5} />
 
       {/* Room structure */}
       <RoomFloor
@@ -231,25 +243,28 @@ const Scene = ({ room, placements }) => {
         );
       })}
 
-      {/* Camera */}
+      {/* Camera with better initial positioning */}
       <PerspectiveCamera
         makeDefault
-        position={[cameraDistance, cameraDistance * 0.8, cameraDistance]}
-        fov={50}
+        position={[cameraDistance, cameraDistance * 0.7, cameraDistance]}
+        fov={55} // Slightly wider field of view for better visibility
       />
       
-      {/* Enhanced Controls with increased zoom range */}
+      {/* Enhanced Controls with improved zoom range and closer minimum distance */}
       <OrbitControls
+        ref={controlsRef}
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
-        minDistance={maxDimension * 0.5} // Can zoom in much closer
-        maxDistance={maxDimension * 10} // Can zoom out much farther
-        zoomSpeed={1.2} // Faster zoom
-        panSpeed={0.8}
-        rotateSpeed={0.8}
+        minDistance={maxDimension * 0.2} // Can zoom in much closer (was 0.5)
+        maxDistance={maxDimension * 15} // Can zoom out much farther (was 10)
+        zoomSpeed={1.5} // Faster zoom (was 1.2)
+        panSpeed={1.0} // Smoother panning (was 0.8)
+        rotateSpeed={1.0} // Smoother rotation (was 0.8)
         minPolarAngle={0} // Allow looking from top
         maxPolarAngle={Math.PI} // Allow looking from bottom
+        dampingFactor={0.05} // Smooth damping
+        enableDamping={true} // Enable smooth camera movement
       />
       
       {/* Enhanced Grid helper */}
@@ -283,14 +298,27 @@ const Room3DView = ({ room, placements = [] }) => {
       </div>
       
       <div className="relative bg-gray-900 rounded-lg overflow-hidden" style={{ height: '600px', minHeight: '400px' }}>
-        <Canvas shadows>
+        <Canvas 
+          shadows 
+          gl={{ 
+            antialias: true, // Enable antialiasing for smoother edges
+            alpha: false, // Better performance
+            powerPreference: "high-performance" // Use dedicated GPU if available
+          }}
+          camera={{ fov: 55, near: 0.1, far: 1000 }}
+        >
           <Scene room={room} placements={placements} />
         </Canvas>
       </div>
 
-      {/* Controls hint */}
-      <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-        <p>🖱️ Left click + drag to rotate | Scroll to zoom | Right click + drag to pan</p>
+      {/* Enhanced Controls hint */}
+      <div className="mt-4 space-y-2">
+        <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <p>🖱️ <strong>Left click + drag</strong> to rotate | <strong>Scroll</strong> to zoom (can zoom very close) | <strong>Right click + drag</strong> to pan</p>
+        </div>
+        <div className="text-xs text-gray-400 dark:text-gray-500 text-center">
+          💡 Zoom in close to see product labels and layer indicators clearly
+        </div>
       </div>
 
       {/* Legend */}

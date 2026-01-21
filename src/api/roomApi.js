@@ -31,6 +31,17 @@ export const getRoomStats = async (id) => {
   return response.data;
 };
 
+// Room stock (per-room inventory)
+export const getRoomStock = async (roomId) => {
+  const response = await axiosClient.get(`/rooms/${roomId}/stock`);
+  return response.data;
+};
+
+export const getProductRoomAvailability = async (productId) => {
+  const response = await axiosClient.get(`/products/${productId}/room-availability`);
+  return response.data;
+};
+
 // Layout Management
 export const generateLayout = async (roomId, data) => {
   const response = await axiosClient.post(`/rooms/${roomId}/generate-layout`, data);

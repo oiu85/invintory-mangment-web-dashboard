@@ -6,8 +6,9 @@ import Select from '../components/Select';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Card from '../components/Card';
-import { AlertTriangle, Package, Users, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Package, Users, TrendingUp, MapPin } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { getProductRoomAvailability } from '../api/roomApi';
 
 const AssignStock = () => {
   const { showToast } = useToast();
@@ -20,10 +21,13 @@ const AssignStock = () => {
     driver_id: '',
     product_id: '',
     quantity: '',
+    room_id: '',
   });
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [roomAvailability, setRoomAvailability] = useState([]);
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
   useEffect(() => {
     fetchDrivers();
@@ -39,8 +43,22 @@ const AssignStock = () => {
         ...product,
         available_quantity: stock?.quantity || 0,
       });
+
+      // Fetch room availability for this product
+      (async () => {
+        try {
+          const availability = await getProductRoomAvailability(parseInt(formData.product_id));
+          setRoomAvailability(availability.rooms || []);
+        } catch (error) {
+          console.error('Error fetching room availability:', error);
+          setRoomAvailability([]);
+        }
+      })();
     } else {
       setSelectedProduct(null);
+      setRoomAvailability([]);
+      setSelectedRoom(null);
+      setFormData(prev => ({ ...prev, room_id: '' }));
     }
   }, [formData.product_id, products, warehouseStock]);
 
@@ -88,12 +106,29 @@ const AssignStock = () => {
       return;
     }
 
+    if (!formData.room_id) {
+      showToast(t('pleaseSelectRoomForAssignment'), 'error');
+      return;
+    }
+
+    const roomEntry = roomAvailability.find(r => r.room_id === parseInt(formData.room_id));
+    const availableInRoom = roomEntry?.quantity || 0;
+    if (parseInt(formData.quantity) > availableInRoom) {
+      showToast(
+        t('insufficientRoomStock')
+          .replace('{quantity}', availableInRoom.toString()),
+        'error'
+      );
+      return;
+    }
+
     setLoading(true);
 
     const formDataToSend = new FormData();
     formDataToSend.append('driver_id', formData.driver_id);
     formDataToSend.append('product_id', formData.product_id);
     formDataToSend.append('quantity', formData.quantity);
+    formDataToSend.append('room_id', formData.room_id);
 
     try {
       await axiosClient.post('/assign-stock', formDataToSend, {
@@ -106,8 +141,11 @@ const AssignStock = () => {
         driver_id: '',
         product_id: '',
         quantity: '',
+        room_id: '',
       });
       setSelectedProduct(null);
+      setRoomAvailability([]);
+      setSelectedRoom(null);
       fetchWarehouseStock();
     } catch (error) {
       console.error('Error assigning stock:', error);
@@ -169,6 +207,25 @@ const AssignStock = () => {
                 required
               />
 
+              <Select
+                label={t('selectRoomForAssignment')}
+                value={formData.room_id}
+                onChange={(e) => {
+                  const roomId = e.target.value;
+                  setFormData({ ...formData, room_id: roomId });
+                  const entry = roomAvailability.find(r => r.room_id === parseInt(roomId));
+                  setSelectedRoom(entry || null);
+                }}
+                options={[
+                  { value: '', label: t('selectRoom') },
+                  ...roomAvailability.map((room) => ({
+                    value: room.room_id,
+                    label: `${room.room_name} (${t('available')}: ${room.quantity})`,
+                  })),
+                ]}
+                required
+              />
+
               <Input
                 label={t('quantityToAssign')}
                 type="number"
@@ -176,7 +233,7 @@ const AssignStock = () => {
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                 required
                 min="1"
-                max={selectedProduct?.available_quantity || 0}
+                max={selectedRoom?.quantity || selectedProduct?.available_quantity || 0}
               />
 
               {selectedProduct && (
@@ -187,6 +244,14 @@ const AssignStock = () => {
                       {t('availableInWarehouse')}: <span className="font-bold">{selectedProduct.available_quantity}</span> {t('units')}
                     </p>
                   </div>
+                  {selectedRoom && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-300">
+                        {t('availableInRoom')}: <span className="font-bold">{selectedRoom.quantity}</span> {t('units')} ({selectedRoom.room_name})
+                      </p>
+                    </div>
+                  )}
                   {parseInt(formData.quantity) > selectedProduct.available_quantity && (
                     <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
                       <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
