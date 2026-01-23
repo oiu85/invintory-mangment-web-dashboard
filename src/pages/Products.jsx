@@ -2,17 +2,21 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import { useToast } from '../context/ToastContext';
-import Table from '../components/Table';
-import Modal from '../components/Modal';
+import Table from '../components/ui/Table';
+import Modal from '../components/ui/Modal';
 import ConfirmModal from '../components/ConfirmModal';
-import Input from '../components/Input';
-import Select from '../components/Select';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
 import Textarea from '../components/Textarea';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import SearchInput from '../components/SearchInput';
-import LoadingSpinner from '../components/LoadingSpinner';
+import Skeleton from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import PageHeader from '../components/layout/PageHeader';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllProductDimensions } from '../api/roomApi';
+import { Grid, List, Search, Package as PackageIcon } from 'lucide-react';
 
 const Products = () => {
   const navigate = useNavigate();
@@ -30,6 +34,7 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingProduct, setEditingProduct] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -170,116 +175,213 @@ const Products = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <LoadingSpinner fullScreen />
-      </div>
-    );
-  }
+  const getStockBadgeVariant = (quantity) => {
+    if (quantity < 10) return { variant: 'error', label: 'Low' };
+    if (quantity < 50) return { variant: 'warning', label: 'Medium' };
+    return { variant: 'success', label: 'Good' };
+  };
 
   return (
-    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleProducts')}</h1>
-          <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionProducts')}</p>
+    <div className="min-h-screen">
+      <PageHeader
+        title={t('pageTitleProducts')}
+        subtitle={t('pageDescriptionProducts')}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button onClick={handleCreate} icon={PackageIcon} iconPosition="left">
+              {t('addProduct')}
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Search and View Toggle */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400 z-10" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t('searchProducts')}
+            className="w-full pl-10 pr-4 py-2 border-2 border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent focus:bg-gradient-to-r focus:from-primary-50 focus:to-secondary-50 dark:focus:from-primary-900/20 dark:focus:to-secondary-900/20 focus:shadow-glow-primary/20 bg-white dark:bg-neutral-800/50 text-neutral-900 dark:text-neutral-100 shadow-sm transition-all duration-300"
+          />
         </div>
-        <Button onClick={handleCreate}>{t('addProduct')}</Button>
+        <div className="flex items-center gap-2 bg-gradient-to-r from-neutral-100/50 to-neutral-200/30 dark:from-neutral-800/50 dark:to-neutral-700/30 p-1 rounded-lg glass">
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-2 rounded transition-all duration-200 ${
+              viewMode === 'table'
+                ? 'bg-gradient-primary text-white shadow-elevated-sm'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-100/50 dark:hover:bg-neutral-700/50'
+            }`}
+            aria-label="Table view"
+          >
+            <List className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2 rounded transition-all duration-200 ${
+              viewMode === 'grid'
+                ? 'bg-gradient-primary text-white shadow-elevated-sm'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 hover:bg-neutral-100/50 dark:hover:bg-neutral-700/50'
+            }`}
+            aria-label="Grid view"
+          >
+            <Grid className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="mb-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('searchProducts')}
-          className="max-w-md"
-        />
-      </div>
-
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <Table
-          headers={[t('id'), t('image'), t('name'), t('price'), t('category'), t('dimensions'), t('warehouseStock'), t('driverStock'), t('totalSold'), t('description')]}
-          data={filteredProducts}
-          renderRow={(product) => (
-            <>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{product.id}</td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {product.image ? (
-                  <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
-                ) : (
-                  <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700">
-                    <svg className="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
+      {loading ? (
+        <Card variant="glass">
+          <Card.Body>
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton variant="avatar" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton variant="heading" />
+                    <Skeleton variant="text" />
                   </div>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">{product.name}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="font-semibold text-green-600 dark:text-green-400">${product.price}</span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
-                  {product.category?.name || t('nA')}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                {(() => {
-                  const productDim = dimensions.find(d => d.product_id === product.id);
-                  if (productDim) {
-                    return (
-                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full text-xs font-medium">
-                        {parseFloat(productDim.width || 0).toFixed(0)}×{parseFloat(productDim.depth || 0).toFixed(0)}×{parseFloat(productDim.height || 0).toFixed(0)} cm
-                      </span>
-                    );
-                  }
-                  return (
-                    <span className="px-2 py-1 bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 rounded-full text-xs font-medium">
-                      {t('dimensionsMissing')}
-                    </span>
-                  );
-                })()}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                  (product.warehouse_quantity || 0) < 10 
-                    ? 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300' 
-                    : (product.warehouse_quantity || 0) < 50 
-                    ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300' 
-                    : 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
-                }`}>
-                  {product.warehouse_quantity || 0} {t('units')}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium">
-                  {product.total_driver_stock || 0} {t('units')}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-xs font-medium">
-                  {product.total_sold || 0} {t('units')}
-                </span>
-              </td>
-              <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 max-w-xs truncate">{product.description || t('nA')}</td>
-            </>
-          )}
-          actions={(product) => (
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => handleEdit(product)}>
-                {t('edit')}
-              </Button>
-              <Button variant="secondary" onClick={() => navigate('/product-dimensions')}>
-                {t('manageDimensions')}
-              </Button>
-              <Button variant="danger" onClick={() => handleDeleteClick(product)}>
-                {t('delete')}
-              </Button>
+                </div>
+              ))}
             </div>
-          )}
-        />
-      </div>
+          </Card.Body>
+        </Card>
+      ) : viewMode === 'table' ? (
+        <Card variant="glass" className="overflow-hidden">
+          <Table
+            headers={[
+              { key: 'id', label: t('id'), sortable: true },
+              { key: 'image', label: t('image') },
+              { key: 'name', label: t('name'), sortable: true },
+              { key: 'price', label: t('price'), sortable: true },
+              { key: 'category', label: t('category') },
+              { key: 'dimensions', label: t('dimensions') },
+              { key: 'warehouseStock', label: t('warehouseStock'), sortable: true },
+              { key: 'driverStock', label: t('driverStock') },
+              { key: 'totalSold', label: t('totalSold') },
+            ]}
+            data={filteredProducts}
+            sortable={true}
+            loading={loading}
+            emptyMessage={t('noData')}
+            renderRow={(product) => {
+              const productDim = dimensions.find(d => d.product_id === product.id);
+              const stockBadge = getStockBadgeVariant(product.warehouse_quantity || 0);
+              
+              return (
+                <>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-sm font-semibold text-neutral-900 dark:text-neutral-100">{product.id}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">
+                    {product.image ? (
+                      <img src={product.image} alt={product.name} className="w-10 h-10 object-cover rounded-lg border-2 border-neutral-200/60 dark:border-neutral-700/60 shadow-sm" />
+                    ) : (
+                      <div className="w-10 h-10 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-700 dark:to-neutral-800 rounded-lg flex items-center justify-center border-2 border-neutral-200/60 dark:border-neutral-700/60 shadow-sm">
+                        <PackageIcon className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100 font-bold">{product.name}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                    <span className="font-bold text-success-600 dark:text-success-400">${product.price}</span>
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                    <Badge variant="primary">{product.category?.name || t('nA')}</Badge>
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                    {productDim ? (
+                      <Badge variant="success">                     
+                        {parseFloat(productDim.width || 0).toFixed(0)}×{parseFloat(productDim.depth || 0).toFixed(0)}×{parseFloat(productDim.height || 0).toFixed(0)} {t('cm')}
+                      </Badge>
+                    ) : (
+                      <Badge variant="error">{t('dimensionsMissing')}</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                    <Badge variant={stockBadge.variant}>
+                      {product.warehouse_quantity || 0} {t('units')}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                    <Badge variant="secondary">{product.total_driver_stock || 0} {t('units')}</Badge>
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                    <Badge>{product.total_sold || 0} {t('units')}</Badge>
+                  </td>
+                </>
+              );
+            }}
+            actions={(product) => (
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => handleEdit(product)}>
+                  {t('edit')}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/product-dimensions')}>
+                  {t('manageDimensions')}
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(product)}>
+                  {t('delete')}
+                </Button>
+              </div>
+            )}
+          />
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredProducts.map((product) => {
+            const productDim = dimensions.find(d => d.product_id === product.id);
+            const stockBadge = getStockBadgeVariant(product.warehouse_quantity || 0);
+            
+            return (
+              <Card key={product.id} variant="glass" hover className="overflow-hidden group">
+                <div className="relative h-40 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-700 dark:to-neutral-800 overflow-hidden">
+                  {product.image ? (
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <PackageIcon className="w-12 h-12 text-neutral-400 dark:text-neutral-500" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+                <Card.Body compact>
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-neutral-900 dark:text-white text-lg">{product.name}</h3>
+                    <Badge variant={stockBadge.variant}>{product.warehouse_quantity || 0}</Badge>
+                  </div>
+                  <p className="text-2xl font-bold text-success-600 dark:text-success-400 mb-3">${product.price}</p>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-neutral-600 dark:text-neutral-400">{t('category')}:</span>
+                      <Badge variant="primary" size="sm">{product.category?.name || t('nA')}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-neutral-600 dark:text-neutral-400">{t('dimensions')}:</span>
+                      {productDim ? (
+                        <Badge variant="success" size="sm">
+                          {parseFloat(productDim.width || 0).toFixed(0)}×{parseFloat(productDim.depth || 0).toFixed(0)}×{parseFloat(productDim.height || 0).toFixed(0)}
+                        </Badge>
+                      ) : (
+                        <Badge variant="error" size="sm">{t('dimensionsMissing')}</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" className="flex-1" onClick={() => handleEdit(product)}>
+                      {t('edit')}
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(product)}>
+                      {t('delete')}
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <Modal
         isOpen={isModalOpen}
@@ -287,20 +389,22 @@ const Products = () => {
         title={editingProduct ? t('editProduct') : t('createProduct')}
         size="lg"
       >
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {formData.image && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('imagePreview')}</label>
-              <img src={formData.image} alt="Preview" className="w-32 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{t('imagePreview')}</label>
+              <img src={formData.image} alt="Preview" className="w-32 h-32 object-cover rounded-lg border border-neutral-200 dark:border-neutral-700" />
             </div>
           )}
           <Input
+            id="product-name"
             label={t('productName')}
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             required
           />
           <Input
+            id="product-price"
             label={t('productPrice')}
             type="number"
             step="0.01"
@@ -310,6 +414,7 @@ const Products = () => {
             required
           />
           <Select
+            id="product-category"
             label={t('productCategory')}
             value={formData.category_id}
             onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
@@ -320,23 +425,25 @@ const Products = () => {
             required
           />
           <Textarea
+            id="product-description"
             label={t('productDescription')}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
           />
           <Input
+            id="product-image"
             label={t('productImage')}
             type="url"
             value={formData.image}
             onChange={(e) => setFormData({ ...formData, image: e.target.value })}
             placeholder="https://example.com/image.jpg"
           />
-          <div className="flex gap-2 mt-4">
-            <Button type="submit" disabled={submitting}>
-              {submitting ? t('saving') : editingProduct ? t('update') : t('create')}
+          <div className="flex gap-2 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+            <Button type="submit" loading={submitting} className="flex-1">
+              {editingProduct ? t('update') : t('create')}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
+            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
               {t('cancel')}
             </Button>
           </div>

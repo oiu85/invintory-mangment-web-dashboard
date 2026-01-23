@@ -4,10 +4,13 @@ import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getRoom } from '../api/roomApi';
 import LayoutGenerator from '../components/LayoutGenerator';
-import Modal from '../components/Modal';
-import Button from '../components/Button';
-import LoadingSpinner from '../components/LoadingSpinner';
-import { ArrowLeft } from 'lucide-react';
+import Modal from '../components/ui/Modal';
+import Button from '../components/ui/Button';
+import Skeleton from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import PageHeader from '../components/layout/PageHeader';
+import EmptyState from '../components/ui/ErrorState';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 
 const RoomLayout = () => {
   const { id } = useParams();
@@ -43,39 +46,61 @@ const RoomLayout = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <LoadingSpinner fullScreen />
+      <div className="min-h-screen">
+        <PageHeader
+          title={<Skeleton variant="heading" className="w-48" />}
+          subtitle={<Skeleton variant="text" className="w-64" />}
+        />
+        <Card variant="glass">
+          <Card.Body>
+            <div className="space-y-4">
+              <Skeleton variant="title" />
+              <Skeleton variant="text" />
+              <Skeleton variant="text" />
+              <Skeleton variant="text" className="w-3/4" />
+            </div>
+          </Card.Body>
+        </Card>
       </div>
     );
   }
 
   if (!room) {
-    return null;
+    return (
+      <div className="min-h-screen">
+        <PageHeader
+          title={t('roomNotFound')}
+          subtitle={t('roomNotFoundMessage')}
+        />
+        <EmptyState
+          icon={AlertCircle}
+          title={t('roomNotFound')}
+          description={t('roomNotFoundMessage')}
+          action={() => navigate('/rooms')}
+          actionLabel={t('backToRooms')}
+        />
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
-      <div className="mb-6">
-        <Button variant="secondary" onClick={() => navigate(`/rooms/${id}`)}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          {t('backToRooms')}
-        </Button>
-      </div>
+    <div className="min-h-screen">
+      <PageHeader
+        title={t('generateLayout')}
+        subtitle={`${t('roomName')}: ${room.name} | ${t('roomDimensions')}: ${parseFloat(room.width || 0).toFixed(0)} × ${parseFloat(room.depth || 0).toFixed(0)} × ${parseFloat(room.height || 0).toFixed(0)} ${t('cm')}`}
+        showBack
+        backPath={`/rooms/${id}`}
+      />
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 mb-6">
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('generateLayout')}</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          {t('roomName')}: <strong>{room.name}</strong> | {t('roomDimensions')}: {parseFloat(room.width || 0).toFixed(0)} × {parseFloat(room.depth || 0).toFixed(0)} × {parseFloat(room.height || 0).toFixed(0)} cm
-        </p>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-        <LayoutGenerator
-          roomId={id}
-          onSuccess={handleSuccess}
-          onClose={() => navigate(`/rooms/${id}`)}
-        />
-      </div>
+      <Card variant="glass">
+        <Card.Body>
+          <LayoutGenerator
+            roomId={id}
+            onSuccess={handleSuccess}
+            onClose={() => navigate(`/rooms/${id}`)}
+          />
+        </Card.Body>
+      </Card>
     </div>
   );
 };

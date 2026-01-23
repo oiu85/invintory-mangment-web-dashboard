@@ -7,16 +7,19 @@ const Card = forwardRef(({
   className = '',
   ...props
 }, ref) => {
-  const baseClasses = 'rounded-xl border transition-all duration-200';
+  const baseClasses = 'rounded-xl border transition-all duration-300 relative';
   
   const variants = {
-    default: 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 shadow-sm',
-    elevated: 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 shadow-lg',
+    default: 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 shadow-depth-sm',
+    elevated: 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 shadow-depth-lg',
+    glass: 'glass border-neutral-200/50 dark:border-neutral-700/50 shadow-depth-md',
+    glassStrong: 'glass-strong border-neutral-200/50 dark:border-neutral-700/50 shadow-depth-lg',
     outlined: 'bg-transparent border-2 border-neutral-300 dark:border-neutral-600',
-    interactive: 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 shadow-sm cursor-pointer hover:shadow-md',
+    gradient: 'bg-white dark:bg-neutral-800 border-0 shadow-depth-md before:absolute before:inset-0 before:rounded-xl before:p-[1px] before:bg-gradient-primary before:-z-10 before:opacity-20',
+    interactive: 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 shadow-depth-sm cursor-pointer hover:shadow-depth-lg hover:shadow-glow-primary/20',
   };
   
-  const hoverClasses = hover ? 'hover:shadow-md hover:-translate-y-0.5' : '';
+  const hoverClasses = hover ? 'hover:shadow-depth-lg hover:-translate-y-1 hover:shadow-glow-primary/10 transition-all duration-300' : '';
   
   return (
     <div
@@ -29,11 +32,11 @@ const Card = forwardRef(({
   );
 });
 
-const CardHeader = forwardRef(({ children, className = '', ...props }, ref) => {
+const CardHeader = forwardRef(({ children, className = '', compact = false, ...props }, ref) => {
   return (
     <div
       ref={ref}
-      className={`p-6 border-b border-neutral-200 dark:border-neutral-700 ${className}`}
+      className={`${compact ? 'p-4' : 'p-5'} border-b border-neutral-200/60 dark:border-neutral-700/60 bg-gradient-to-r from-transparent via-neutral-50/50 to-transparent dark:via-neutral-800/30 ${className}`}
       {...props}
     >
       {children}
@@ -43,11 +46,11 @@ const CardHeader = forwardRef(({ children, className = '', ...props }, ref) => {
 
 CardHeader.displayName = 'CardHeader';
 
-const CardBody = forwardRef(({ children, className = '', ...props }, ref) => {
+const CardBody = forwardRef(({ children, className = '', compact = false, ...props }, ref) => {
   return (
     <div
       ref={ref}
-      className={`p-6 ${className}`}
+      className={`${compact ? 'p-4' : 'p-5'} ${className}`}
       {...props}
     >
       {children}
@@ -57,11 +60,11 @@ const CardBody = forwardRef(({ children, className = '', ...props }, ref) => {
 
 CardBody.displayName = 'CardBody';
 
-const CardFooter = forwardRef(({ children, className = '', ...props }, ref) => {
+const CardFooter = forwardRef(({ children, className = '', compact = false, ...props }, ref) => {
   return (
     <div
       ref={ref}
-      className={`p-6 border-t border-neutral-200 dark:border-neutral-700 ${className}`}
+      className={`${compact ? 'p-4' : 'p-5'} border-t border-neutral-200/60 dark:border-neutral-700/60 bg-gradient-to-r from-transparent via-neutral-50/50 to-transparent dark:via-neutral-800/30 ${className}`}
       {...props}
     >
       {children}

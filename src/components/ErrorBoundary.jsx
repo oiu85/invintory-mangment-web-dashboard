@@ -1,5 +1,7 @@
 import { Component } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import Card from './ui/Card';
+import Button from './ui/Button';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -27,48 +29,48 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 max-w-2xl w-full border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-lg">
-                <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+        <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-900 p-4">
+          <Card variant="elevated" className="max-w-2xl w-full">
+            <Card.Body>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-error-100 dark:bg-error-900/30 p-3 rounded-lg">
+                  <AlertTriangle className="w-8 h-8 text-error-600 dark:text-error-400" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">
+                    Something went wrong
+                  </h1>
+                  <p className="text-neutral-600 dark:text-neutral-400 mt-1">
+                    An unexpected error occurred. Please try refreshing the page.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Something went wrong
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  An unexpected error occurred. Please try refreshing the page.
-                </p>
-              </div>
-            </div>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                <p className="text-sm font-mono text-red-600 dark:text-red-400 break-all">
-                  {this.state.error.toString()}
-                </p>
-                {this.state.errorInfo && (
-                  <details className="mt-4">
-                    <summary className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-                      Stack trace
-                    </summary>
-                    <pre className="mt-2 text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-64">
-                      {this.state.errorInfo.componentStack}
-                    </pre>
-                  </details>
-                )}
-              </div>
-            )}
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <Card variant="outlined" className="mb-6">
+                  <Card.Body>
+                    <p className="text-sm font-mono text-error-600 dark:text-error-400 break-all">
+                      {this.state.error.toString()}
+                    </p>
+                    {this.state.errorInfo && (
+                      <details className="mt-4">
+                        <summary className="text-sm text-neutral-600 dark:text-neutral-400 cursor-pointer">
+                          Stack trace
+                        </summary>
+                        <pre className="mt-2 text-xs text-neutral-700 dark:text-neutral-300 overflow-auto max-h-64">
+                          {this.state.errorInfo.componentStack}
+                        </pre>
+                      </details>
+                    )}
+                  </Card.Body>
+                </Card>
+              )}
 
-            <button
-              onClick={this.handleReset}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <RefreshCw className="w-5 h-5" />
-              Refresh Page
-            </button>
-          </div>
+              <Button onClick={this.handleReset} icon={RefreshCw} iconPosition="left" size="lg">
+                Refresh Page
+              </Button>
+            </Card.Body>
+          </Card>
         </div>
       );
     }

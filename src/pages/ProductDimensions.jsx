@@ -4,15 +4,16 @@ import axiosClient from '../api/axiosClient';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllProductDimensions, getProductDimensions, createProductDimensions, updateProductDimensions, deleteProductDimensions } from '../api/roomApi';
-import Table from '../components/Table';
-import Modal from '../components/Modal';
+import Table from '../components/ui/Table';
+import Modal from '../components/ui/Modal';
 import ConfirmModal from '../components/ConfirmModal';
-import Input from '../components/Input';
-import Button from '../components/Button';
-import SearchInput from '../components/SearchInput';
-import LoadingSpinner from '../components/LoadingSpinner';
-import Card from '../components/Card';
-import { Ruler, Package, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import Skeleton from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import PageHeader from '../components/layout/PageHeader';
+import { Ruler, Package, AlertTriangle, CheckCircle2, Search, Plus } from 'lucide-react';
 
 const ProductDimensions = () => {
   const navigate = useNavigate();
@@ -176,120 +177,159 @@ const ProductDimensions = () => {
   const withDimensions = filteredProducts.filter(p => p.dimensions).length;
   const withoutDimensions = totalProducts - withDimensions;
 
-  if (loading) {
+  const StatCard = ({ title, value, icon: Icon, color, subtitle }) => {
+    const colorConfigs = {
+      blue: { iconBg: 'bg-gradient-to-br from-blue-500 to-blue-600', text: 'text-blue-600 dark:text-blue-400' },
+      green: { iconBg: 'bg-gradient-to-br from-success-500 to-success-600', text: 'text-success-600 dark:text-success-400' },
+      orange: { iconBg: 'bg-gradient-to-br from-warning-500 to-warning-600', text: 'text-warning-600 dark:text-warning-400' },
+    };
+    const config = colorConfigs[color] || colorConfigs.blue;
+
     return (
-      <div className="p-6">
-        <LoadingSpinner fullScreen />
-      </div>
+      <Card variant="glass" hover>
+        <Card.Body>
+          <div className="flex items-center justify-between mb-4">
+            <div className={`${config.iconBg} p-3 rounded-xl shadow-lg`}>
+              {Icon && <Icon className="w-6 h-6 text-white" />}
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">{title}</p>
+            <p className={`text-3xl font-bold ${config.text} mb-1`}>{value}</p>
+            {subtitle && <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{subtitle}</p>}
+          </div>
+        </Card.Body>
+      </Card>
     );
-  }
+  };
 
   return (
-    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleProductDimensions')}</h1>
-          <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionProductDimensions')}</p>
-        </div>
-      </div>
+    <div className="min-h-screen">
+      <PageHeader
+        title={t('pageTitleProductDimensions')}
+        subtitle={t('pageDescriptionProductDimensions')}
+      />
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card
-          title={t('totalProducts')}
-          value={totalProducts}
-          icon={Package}
-          color="blue"
-          subtitle={t('allProducts')}
-        />
-        <Card
-          title={t('dimensionsSet')}
-          value={withDimensions}
-          icon={CheckCircle2}
-          color="green"
-          subtitle={t('withDimensions')}
-        />
-        <Card
-          title={t('dimensionsMissing')}
-          value={withoutDimensions}
-          icon={AlertTriangle}
-          color="orange"
-          subtitle={t('needsDimensions')}
-        />
+        {loading ? (
+          <>
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} variant="elevated">
+                <Card.Body>
+                  <Skeleton variant="avatar" className="mb-4" />
+                  <Skeleton variant="title" className="mb-2" />
+                  <Skeleton variant="text" />
+                </Card.Body>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <StatCard
+              title={t('totalProducts')}
+              value={totalProducts}
+              icon={Package}
+              color="blue"
+              subtitle={t('allProducts')}
+            />
+            <StatCard
+              title={t('dimensionsSet')}
+              value={withDimensions}
+              icon={CheckCircle2}
+              color="green"
+              subtitle={t('withDimensions')}
+            />
+            <StatCard
+              title={t('dimensionsMissing')}
+              value={withoutDimensions}
+              icon={AlertTriangle}
+              color="orange"
+              subtitle={t('needsDimensions')}
+            />
+          </>
+        )}
       </div>
 
-      <div className="mb-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('searchProducts')}
-          className="max-w-md"
-        />
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t('searchProducts')}
+            className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
+          />
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+      <Card variant="glass" className="overflow-hidden">
         <Table
-          headers={[t('productId'), t('productName'), t('dimensions'), t('weight'), t('rotatable'), t('fragile'), t('status')]}
+          headers={[
+            { key: 'productId', label: t('productId'), sortable: true },
+            { key: 'productName', label: t('productName'), sortable: true },
+            { key: 'dimensions', label: t('dimensions') },
+            { key: 'weight', label: t('weight'), sortable: true },
+            { key: 'rotatable', label: t('rotatable') },
+            { key: 'fragile', label: t('fragile') },
+            { key: 'status', label: t('status') },
+          ]}
           data={filteredProducts}
+          sortable={true}
+          loading={loading}
+          emptyMessage={t('noData')}
           renderRow={(product) => {
             const dim = product.dimensions;
             const hasDimensions = !!dim;
 
             return (
               <>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{product.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">{product.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">{product.id}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100 font-semibold">{product.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                   {hasDimensions ? (
-                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
-                      {parseFloat(dim.width || 0).toFixed(0)} × {parseFloat(dim.depth || 0).toFixed(0)} × {parseFloat(dim.height || 0).toFixed(0)} cm
-                    </span>
+                    <Badge variant="primary">
+                      {parseFloat(dim.width || 0).toFixed(0)} × {parseFloat(dim.depth || 0).toFixed(0)} × {parseFloat(dim.height || 0).toFixed(0)} {t('cm')}
+                    </Badge>
                   ) : (
-                    <span className="text-gray-400 dark:text-gray-500">{t('nA')}</span>
+                    <span className="text-neutral-400 dark:text-neutral-500">{t('nA')}</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                   {hasDimensions && dim.weight ? (
                     <span>{parseFloat(dim.weight).toFixed(2)} kg</span>
                   ) : (
-                    <span className="text-gray-400 dark:text-gray-500">{t('nA')}</span>
+                    <span className="text-neutral-400 dark:text-neutral-500">{t('nA')}</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                   {hasDimensions ? (
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      dim.rotatable !== false
-                        ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
-                        : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
-                    }`}>
+                    <Badge variant={dim.rotatable !== false ? 'success' : 'error'} size="sm">
                       {dim.rotatable !== false ? t('yes') : t('no')}
-                    </span>
+                    </Badge>
                   ) : (
-                    <span className="text-gray-400 dark:text-gray-500">{t('nA')}</span>
+                    <span className="text-neutral-400 dark:text-neutral-500">{t('nA')}</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                   {hasDimensions ? (
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      dim.fragile === true
-                        ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                    }`}>
+                    <Badge variant={dim.fragile === true ? 'warning' : 'default'} size="sm">
                       {dim.fragile === true ? t('yes') : t('no')}
-                    </span>
+                    </Badge>
                   ) : (
-                    <span className="text-gray-400 dark:text-gray-500">{t('nA')}</span>
+                    <span className="text-neutral-400 dark:text-neutral-500">{t('nA')}</span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {hasDimensions ? (
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
+                    <Badge variant="success" size="sm">
                       {t('dimensionsSet')}
-                    </span>
+                    </Badge>
                   ) : (
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300">
+                    <Badge variant="error" size="sm">
                       {t('dimensionsMissing')}
-                    </span>
+                    </Badge>
                   )}
                 </td>
               </>
@@ -299,22 +339,22 @@ const ProductDimensions = () => {
             <div className="flex gap-2">
               {product.dimensions ? (
                 <>
-                  <Button variant="secondary" onClick={() => handleEdit(product)}>
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(product)}>
                     {t('editDimensions')}
                   </Button>
-                  <Button variant="danger" onClick={() => handleDeleteClick(product)}>
+                  <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(product)}>
                     {t('delete')}
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => handleCreate(product)}>
+                <Button variant="ghost" size="sm" onClick={() => handleCreate(product)}>
                   {t('addDimensions')}
                 </Button>
               )}
             </div>
           )}
         />
-      </div>
+      </Card>
 
       <Modal
         isOpen={isModalOpen}

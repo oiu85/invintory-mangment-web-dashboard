@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import { useToast } from '../context/ToastContext';
-import Table from '../components/Table';
-import Button from '../components/Button';
-import SearchInput from '../components/SearchInput';
-import LoadingSpinner from '../components/LoadingSpinner';
+import Table from '../components/ui/Table';
+import Button from '../components/ui/Button';
+import Skeleton from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import PageHeader from '../components/layout/PageHeader';
 import { useLanguage } from '../context/LanguageContext';
+import { Search, ShoppingCart } from 'lucide-react';
 
 const Sales = () => {
   const { showToast } = useToast();
@@ -47,50 +50,59 @@ const Sales = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <LoadingSpinner fullScreen />
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
+    <div className="min-h-screen">
+      <PageHeader
+        title={t('pageTitleSales')}
+        subtitle={t('pageDescriptionSales')}
+        actions={
+          <Button icon={ShoppingCart} iconPosition="left" variant="ghost">
+            {t('sales')}
+          </Button>
+        }
+      />
+
       <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleSales')}</h1>
-        <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionSales')}</p>
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t('searchSales')}
+            className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
+          />
+        </div>
       </div>
 
-      <div className="mb-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('searchSales')}
-          className="max-w-md"
-        />
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+      <Card variant="glass" className="overflow-hidden">
         <Table
-          headers={[t('id'), t('invoiceNumber'), t('customer'), t('driver'), t('totalAmount'), t('date')]}
+          headers={[
+            { key: 'id', label: t('id'), sortable: true },
+            { key: 'invoiceNumber', label: t('invoiceNumber'), sortable: true },
+            { key: 'customer', label: t('customer'), sortable: true },
+            { key: 'driver', label: t('driver') },
+            { key: 'totalAmount', label: t('totalAmount'), sortable: true },
+            { key: 'date', label: t('date'), sortable: true },
+          ]}
           data={filteredSales}
+          sortable={true}
+          loading={loading}
+          emptyMessage={t('noData')}
           renderRow={(sale) => (
             <>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{sale.id}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">{sale.id}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                 <span className="font-mono font-semibold">{sale.invoice_number}</span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{sale.customer_name}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
-                  {sale.driver?.name || t('nA')}
-                </span>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">{sale.customer_name}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                <Badge variant="primary">{sale.driver?.name || t('nA')}</Badge>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="font-semibold text-green-600 dark:text-green-400">${parseFloat(sale.total_amount).toFixed(2)}</span>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                <span className="font-semibold text-success-600 dark:text-success-400">${parseFloat(sale.total_amount).toFixed(2)}</span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                 {new Date(sale.created_at).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'short',
@@ -100,12 +112,12 @@ const Sales = () => {
             </>
           )}
           actions={(sale) => (
-            <Button variant="secondary" onClick={() => navigate(`/sales/${sale.id}`)}>
+            <Button variant="ghost" size="sm" onClick={() => navigate(`/sales/${sale.id}`)}>
               {t('viewDetails')}
             </Button>
           )}
         />
-      </div>
+      </Card>
     </div>
   );
 };

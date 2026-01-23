@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import { useToast } from '../context/ToastContext';
-import Table from '../components/Table';
-import Modal from '../components/Modal';
+import Table from '../components/ui/Table';
+import Modal from '../components/ui/Modal';
 import ConfirmModal from '../components/ConfirmModal';
-import Input from '../components/Input';
-import Button from '../components/Button';
-import SearchInput from '../components/SearchInput';
-import LoadingSpinner from '../components/LoadingSpinner';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import Skeleton from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import PageHeader from '../components/layout/PageHeader';
 import { useLanguage } from '../context/LanguageContext';
+import { Search, Users, Plus, Package } from 'lucide-react';
 
 const Drivers = () => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { language, t } = useLanguage();
   const isRTL = language === 'ar';
@@ -160,77 +165,85 @@ const Drivers = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <LoadingSpinner fullScreen />
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleDrivers')}</h1>
-          <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionDrivers')}</p>
+    <div className="min-h-screen">
+      <PageHeader
+        title={t('pageTitleDrivers')}
+        subtitle={t('pageDescriptionDrivers')}
+        actions={
+          <Button onClick={handleAddDriver} icon={Plus} iconPosition="left">
+            {t('addDriver')}
+          </Button>
+        }
+      />
+
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t('searchDrivers')}
+            className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
+          />
         </div>
-        <Button onClick={handleAddDriver}>{t('addDriver')}</Button>
       </div>
 
-      <div className="mb-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('searchDrivers')}
-          className="max-w-md"
-        />
-      </div>
-
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <Card variant="glass" className="overflow-hidden">
         <Table
-          headers={[t('id'), t('name'), t('email'), t('totalSales'), t('totalRevenue'), t('stockItems'), t('joined')]}
+          headers={[
+            { key: 'id', label: t('id'), sortable: true },
+            { key: 'name', label: t('name'), sortable: true },
+            { key: 'email', label: t('email'), sortable: true },
+            { key: 'totalSales', label: t('totalSales'), sortable: true },
+            { key: 'totalRevenue', label: t('totalRevenue'), sortable: true },
+            { key: 'stockItems', label: t('stockItems'), sortable: true },
+            { key: 'joined', label: t('joined'), sortable: true },
+          ]}
           data={filteredDrivers}
+          sortable={true}
+          loading={loading}
+          emptyMessage={t('noData')}
           renderRow={(driver) => (
             <>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{driver.id}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">{driver.name}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{driver.email}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
-                  {driver.total_sales || 0}
-                </span>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">{driver.id}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100 font-semibold">{driver.name}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">{driver.email}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                <Badge variant="primary">{driver.total_sales || 0}</Badge>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="font-semibold text-green-600 dark:text-green-400">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                <span className="font-semibold text-success-600 dark:text-success-400">
                   ${parseFloat(driver.total_revenue || 0).toFixed(2)}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium">
-                  {driver.total_stock_items || 0}
-                </span>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                <Badge variant="secondary">{driver.total_stock_items || 0}</Badge>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                 {new Date(driver.created_at).toLocaleDateString()}
               </td>
             </>
           )}
           actions={(driver) => (
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => fetchDriverStock(driver.id)}>
+              <Button variant="primary" size="sm" onClick={() => navigate(`/drivers/${driver.id}`)}>
+                {t('viewDetails')}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => fetchDriverStock(driver.id)}>
                 {t('stock')}
               </Button>
-              <Button variant="secondary" onClick={() => handleEdit(driver)}>
+              <Button variant="ghost" size="sm" onClick={() => handleEdit(driver)}>
                 {t('edit')}
               </Button>
-              <Button variant="danger" onClick={() => handleDeleteClick(driver)}>
+              <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(driver)}>
                 {t('delete')}
               </Button>
             </div>
           )}
         />
-      </div>
+      </Card>
 
       {/* Stock Modal */}
       <Modal
@@ -240,15 +253,23 @@ const Drivers = () => {
         size="lg"
       >
         {loadingStock ? (
-          <LoadingSpinner />
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton variant="avatar" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton variant="heading" />
+                  <Skeleton variant="text" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : driverStock.length === 0 ? (
           <div className="text-center py-12">
-            <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
+            <div className="bg-neutral-100 dark:bg-neutral-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="w-8 h-8 text-neutral-400 dark:text-neutral-500" />
             </div>
-            <p className="text-gray-500 dark:text-gray-400 font-medium">{t('noStockAssigned')}</p>
+            <p className="text-neutral-500 dark:text-neutral-400 font-medium">{t('noStockAssigned')}</p>
           </div>
         ) : (
           <Table
@@ -256,16 +277,16 @@ const Drivers = () => {
             data={driverStock}
             renderRow={(item) => (
               <>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100 font-semibold">
                   {item.product?.name || t('nA')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                  {item.product?.category?.name || t('nA')}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                  <Badge>{item.product?.category?.name || t('nA')}</Badge>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                  <span className="px-3 py-1 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full text-sm font-semibold">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                  <Badge variant="success">
                     {item.quantity} {t('units')}
-                  </span>
+                  </Badge>
                 </td>
               </>
             )}
@@ -284,14 +305,16 @@ const Drivers = () => {
         }}
         title={selectedDriver ? t('editDriver') : t('createDriver')}
       >
-        <form onSubmit={handleSubmitDriver}>
+        <form onSubmit={handleSubmitDriver} className="space-y-4">
           <Input
+            id="driver-name"
             label={t('driverName')}
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             required
           />
           <Input
+            id="driver-email"
             label={t('driverEmail')}
             type="email"
             value={formData.email}
@@ -299,6 +322,7 @@ const Drivers = () => {
             required
           />
           <Input
+            id="driver-password"
             label={selectedDriver ? t('newPassword') : t('driverPassword')}
             type="password"
             value={formData.password}
@@ -306,13 +330,13 @@ const Drivers = () => {
             required={!selectedDriver}
             minLength={6}
           />
-          <div className="flex gap-2 mt-4">
-            <Button type="submit" disabled={submitting}>
-              {submitting ? t('saving') : selectedDriver ? t('update') : t('createDriver')}
+          <div className="flex gap-2 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+            <Button type="submit" loading={submitting} className="flex-1">
+              {selectedDriver ? t('update') : t('createDriver')}
             </Button>
             <Button
               type="button"
-              variant="secondary"
+              variant="ghost"
               onClick={() => {
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);

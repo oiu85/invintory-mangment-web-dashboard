@@ -59,28 +59,28 @@ const Table = ({
   if (loading) {
     return (
       <div className="overflow-x-auto">
-        <table className={`min-w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg ${className}`}>
-          <thead className="bg-neutral-50 dark:bg-neutral-900">
+        <table className={`min-w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-depth-sm ${className}`}>
+          <thead className="bg-gradient-to-r from-primary-50/50 via-secondary-50/30 to-primary-50/50 dark:from-primary-900/20 dark:via-secondary-900/10 dark:to-primary-900/20 backdrop-blur-sm sticky top-0 z-10">
             <tr>
               {headers.map((header, index) => (
-                <th key={index} className="px-6 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
-                  <Skeleton className="h-4 w-20" />
+                <th key={index} className="px-4 py-2.5 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                  <Skeleton className="h-3.5 w-20" />
                 </th>
               ))}
-              {actions && <th className="px-6 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase">Actions</th>}
+              {actions && <th className="px-4 py-2.5 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase">Actions</th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
+          <tbody className="divide-y divide-neutral-200/60 dark:divide-neutral-700/60">
             {[...Array(5)].map((_, index) => (
-              <tr key={index}>
+              <tr key={index} className={index % 2 === 0 ? 'bg-neutral-50/30 dark:bg-neutral-800/30' : ''}>
                 {headers.map((_, cellIndex) => (
-                  <td key={cellIndex} className="px-6 py-4">
-                    <Skeleton className="h-4 w-full" />
+                  <td key={cellIndex} className="px-4 py-2.5">
+                    <Skeleton className="h-3.5 w-full" />
                   </td>
                 ))}
                 {actions && (
-                  <td className="px-6 py-4">
-                    <Skeleton className="h-8 w-20" />
+                  <td className="px-4 py-2.5">
+                    <Skeleton className="h-7 w-20" />
                   </td>
                 )}
               </tr>
@@ -93,8 +93,8 @@ const Table = ({
   
   return (
     <div className="overflow-x-auto">
-      <table className={`min-w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg ${className}`} {...props}>
-        <thead className="bg-neutral-50 dark:bg-neutral-900">
+      <table className={`min-w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-depth-sm overflow-hidden ${className}`} {...props}>
+        <thead className="bg-gradient-to-r from-primary-50/50 via-secondary-50/30 to-primary-50/50 dark:from-primary-900/20 dark:via-secondary-900/10 dark:to-primary-900/20 backdrop-blur-sm sticky top-0 z-10 border-b-2 border-primary-200/50 dark:border-primary-700/50">
           <tr>
             {headers.map((header, index) => {
               const headerKey = typeof header === 'object' ? header.key : header;
@@ -104,8 +104,8 @@ const Table = ({
               return (
                 <th
                   key={index}
-                  className={`px-6 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase tracking-wider ${
-                    isSortable ? 'cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 select-none' : ''
+                  className={`px-4 py-2.5 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider transition-all duration-200 ${
+                    isSortable ? 'cursor-pointer hover:bg-primary-100/50 dark:hover:bg-primary-800/30 select-none active:bg-primary-200/50 dark:active:bg-primary-700/40' : ''
                   }`}
                   onClick={() => isSortable && handleSort(headerKey)}
                   role={isSortable ? 'button' : undefined}
@@ -120,19 +120,23 @@ const Table = ({
                 >
                   <div className="flex items-center gap-2">
                     {headerLabel}
-                    {isSortable && getSortIcon(headerKey)}
+                    {isSortable && (
+                      <span className="text-primary-500 dark:text-primary-400">
+                        {getSortIcon(headerKey)}
+                      </span>
+                    )}
                   </div>
                 </th>
               );
             })}
             {actions && (
-              <th className="px-6 py-3 text-left text-xs font-medium text-neutral-700 dark:text-neutral-300 uppercase">
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase">
                 Actions
               </th>
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
+        <tbody className="divide-y divide-neutral-200/60 dark:divide-neutral-700/60">
           {sortedData.length === 0 ? (
             <tr>
               <td colSpan={headers.length + (actions ? 1 : 0)} className="px-6 py-12">
@@ -147,12 +151,16 @@ const Table = ({
             sortedData.map((row, index) => (
               <tr
                 key={index}
-                className="hover:bg-neutral-50 dark:hover:bg-neutral-700/50 transition-colors"
+                className={`transition-all duration-200 ${
+                  index % 2 === 0 
+                    ? 'bg-neutral-50/30 dark:bg-neutral-800/30' 
+                    : 'bg-white dark:bg-neutral-800'
+                } hover:bg-gradient-to-r hover:from-primary-50/40 hover:via-transparent hover:to-secondary-50/40 dark:hover:from-primary-900/20 dark:hover:via-transparent dark:hover:to-secondary-900/20 hover:shadow-sm`}
               >
                 {renderRow(row)}
                 {actions && (
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex flex-wrap gap-2">
+                  <td className="px-4 py-2.5 whitespace-nowrap text-sm font-medium">
+                    <div className="flex flex-wrap gap-1.5">
                       {actions(row)}
                     </div>
                   </td>

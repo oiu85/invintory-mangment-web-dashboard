@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
 import { useToast } from '../context/ToastContext';
-import Table from '../components/Table';
-import Modal from '../components/Modal';
-import Input from '../components/Input';
-import Select from '../components/Select';
-import Button from '../components/Button';
-import SearchInput from '../components/SearchInput';
-import LoadingSpinner from '../components/LoadingSpinner';
-import { Package, AlertTriangle, AlertCircle, CheckCircle2, TrendingUp, MapPin, Layers } from 'lucide-react';
-import Card from '../components/Card';
+import Table from '../components/ui/Table';
+import Modal from '../components/ui/Modal';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import Button from '../components/ui/Button';
+import Skeleton from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import PageHeader from '../components/layout/PageHeader';
 import { useLanguage } from '../context/LanguageContext';
 import { applySuggestion, getRooms } from '../api/roomApi';
+import { Package, AlertTriangle, AlertCircle, CheckCircle2, TrendingUp, MapPin, Layers, Search, Warehouse } from 'lucide-react';
 
 const WarehouseStock = () => {
   const { showToast } = useToast();
@@ -207,53 +208,91 @@ const WarehouseStock = () => {
   const lowStockCount = filteredStock.filter(item => (item.quantity || 0) < 10).length;
   const outOfStockCount = filteredStock.filter(item => (item.quantity || 0) === 0).length;
 
-  if (loading) {
+  const StatCard = ({ title, value, icon: Icon, color, subtitle }) => {
+    const colorConfigs = {
+      blue: { iconBg: 'bg-gradient-to-br from-blue-500 to-blue-600', text: 'text-blue-600 dark:text-blue-400' },
+      orange: { iconBg: 'bg-gradient-to-br from-orange-500 to-orange-600', text: 'text-orange-600 dark:text-orange-400' },
+      red: { iconBg: 'bg-gradient-to-br from-error-500 to-error-600', text: 'text-error-600 dark:text-error-400' },
+    };
+    const config = colorConfigs[color] || colorConfigs.blue;
+
     return (
-      <div className="p-6">
-        <LoadingSpinner fullScreen />
-      </div>
+      <Card variant="glass" hover>
+        <Card.Body>
+          <div className="flex items-center justify-between mb-4">
+            <div className={`${config.iconBg} p-3 rounded-xl shadow-lg`}>
+              {Icon && <Icon className="w-6 h-6 text-white" />}
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">{title}</p>
+            <p className={`text-3xl font-bold ${config.text} mb-1`}>{value}</p>
+            {subtitle && <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{subtitle}</p>}
+          </div>
+        </Card.Body>
+      </Card>
     );
-  }
+  };
 
   return (
-    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
-      <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleWarehouseStock')}</h1>
-        <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionWarehouseStock')}</p>
-      </div>
+    <div className="min-h-screen">
+      <PageHeader
+        title={t('pageTitleWarehouseStock')}
+        subtitle={t('pageDescriptionWarehouseStock')}
+      />
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card
-          title={t('totalItems')}
-          value={totalItems.toLocaleString()}
-          icon={Package}
-          color="blue"
-          subtitle={t('itemsInWarehouse')}
-        />
-        <Card
-          title={t('lowStockItems')}
-          value={lowStockCount}
-          icon={AlertTriangle}
-          color="orange"
-          subtitle={t('requiringAttention')}
-        />
-        <Card
-          title={t('outOfStock')}
-          value={outOfStockCount}
-          icon={AlertCircle}
-          color="red"
-          subtitle={t('needsRestocking')}
-        />
+        {loading ? (
+          <>
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} variant="elevated">
+                <Card.Body>
+                  <Skeleton variant="avatar" className="mb-4" />
+                  <Skeleton variant="title" className="mb-2" />
+                  <Skeleton variant="text" />
+                </Card.Body>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <StatCard
+              title={t('totalItems')}
+              value={totalItems.toLocaleString()}
+              icon={Package}
+              color="blue"
+              subtitle={t('itemsInWarehouse')}
+            />
+            <StatCard
+              title={t('lowStockItems')}
+              value={lowStockCount}
+              icon={AlertTriangle}
+              color="orange"
+              subtitle={t('requiringAttention')}
+            />
+            <StatCard
+              title={t('outOfStock')}
+              value={outOfStockCount}
+              icon={AlertCircle}
+              color="red"
+              subtitle={t('needsRestocking')}
+            />
+          </>
+        )}
       </div>
 
-      <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('searchProductsOrCategories')}
-          className="max-w-md"
-        />
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t('searchProductsOrCategories')}
+            className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
+          />
+        </div>
         <div className="flex items-end gap-2">
           <Select
             label={t('selectRoomForPlacement')}
@@ -270,52 +309,64 @@ const WarehouseStock = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+      <Card variant="glass" className="overflow-hidden">
         <Table
-          headers={[t('productId'), t('productName'), t('category'), t('currentStock'), t('status')]}
+          headers={[
+            { key: 'productId', label: t('productId'), sortable: true },
+            { key: 'productName', label: t('productName'), sortable: true },
+            { key: 'category', label: t('category') },
+            { key: 'currentStock', label: t('currentStock'), sortable: true },
+            { key: 'status', label: t('status') },
+          ]}
           data={filteredStock}
+          sortable={true}
+          loading={loading}
+          emptyMessage={t('noData')}
           renderRow={(item) => {
             const quantity = item.quantity || 0;
             const status = quantity === 0 ? 'out' : quantity < 10 ? 'low' : quantity < 50 ? 'medium' : 'good';
-            const statusConfig = {
-              out: { bg: 'bg-red-100 dark:bg-red-900/50', text: 'text-red-800 dark:text-red-300', label: t('outOfStockLabel') },
-              low: { bg: 'bg-yellow-100 dark:bg-yellow-900/50', text: 'text-yellow-800 dark:text-yellow-300', label: t('lowStockLabel') },
-              medium: { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-800 dark:text-blue-300', label: t('mediumStock') },
-              good: { bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-800 dark:text-green-300', label: t('goodStock') },
+            const statusVariants = {
+              out: 'error',
+              low: 'warning',
+              medium: 'primary',
+              good: 'success',
             };
-            const statusStyle = statusConfig[status];
+            const statusLabels = {
+              out: t('outOfStockLabel'),
+              low: t('lowStockLabel'),
+              medium: t('mediumStock'),
+              good: t('goodStock'),
+            };
 
             return (
               <>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{item.product_id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">{item.product_id}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100 font-semibold">
                   {item.product?.name || t('nA')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-xs font-medium">
-                    {item.product?.category?.name || t('nA')}
-                  </span>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                  <Badge>{item.product?.category?.name || t('nA')}</Badge>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                  <Badge variant={statusVariants[status]}>
                     {quantity.toLocaleString()} {t('units')}
-                  </span>
+                  </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
-                    {statusStyle.label}
-                  </span>
+                  <Badge variant={statusVariants[status]} size="sm">
+                    {statusLabels[status]}
+                  </Badge>
                 </td>
               </>
             );
           }}
           actions={(item) => (
-            <Button variant="secondary" onClick={() => handleUpdate(item)}>
+            <Button variant="ghost" size="sm" onClick={() => handleUpdate(item)}>
               {t('update')}
             </Button>
           )}
         />
-      </div>
+      </Card>
 
       <Modal
         isOpen={isModalOpen}
@@ -337,6 +388,7 @@ const WarehouseStock = () => {
             required
           />
           <Input
+            id="stock-quantity"
             label={t('quantity')}
             type="number"
             value={formData.quantity}
@@ -349,11 +401,11 @@ const WarehouseStock = () => {
               <strong>{t('note')}:</strong> {t('stockUpdateNote')}
             </p>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button type="submit" disabled={submitting}>
-              {submitting ? t('updating') : t('updateStock')}
+          <div className="flex gap-2 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+            <Button type="submit" loading={submitting} className="flex-1">
+              {t('updateStock')}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
+            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
               {t('cancel')}
             </Button>
           </div>
@@ -392,7 +444,7 @@ const WarehouseStock = () => {
                           {roomSuggestion.room?.name || `Room #${roomSuggestion.room?.id}`}
                         </h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {parseFloat(roomSuggestion.room?.width || 0).toFixed(0)} × {parseFloat(roomSuggestion.room?.depth || 0).toFixed(0)} × {parseFloat(roomSuggestion.room?.height || 0).toFixed(0)} cm
+                          {parseFloat(roomSuggestion.room?.width || 0).toFixed(0)} × {parseFloat(roomSuggestion.room?.depth || 0).toFixed(0)} × {parseFloat(roomSuggestion.room?.height || 0).toFixed(0)} {t('cm')}
                         </p>
                       </div>
                       <div className="text-right">

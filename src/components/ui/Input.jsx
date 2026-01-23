@@ -18,11 +18,11 @@ const Input = forwardRef(({
   const { language } = useLanguage();
   const isRTL = language === 'ar';
   
-  const baseClasses = 'w-full px-4 py-2.5 rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500';
+  const baseClasses = 'w-full px-3 py-2 rounded-lg border-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 bg-white dark:bg-neutral-800/50 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 shadow-sm';
   
   const stateClasses = error
-    ? 'border-error-500 dark:border-error-600 focus:ring-error-500 focus:border-error-500'
-    : 'border-neutral-300 dark:border-neutral-600 focus:ring-primary-500 focus:border-primary-500';
+    ? 'border-error-400 dark:border-error-500 focus:ring-error-400 focus:border-error-500 focus:shadow-glow-error/30'
+    : 'border-neutral-300 dark:border-neutral-600 focus:ring-primary-400 focus:border-transparent focus:bg-gradient-to-r focus:from-primary-50 focus:to-secondary-50 dark:focus:from-primary-900/20 dark:focus:to-secondary-900/20 focus:shadow-glow-primary/20';
   
   const iconPadding = Icon
     ? iconPosition === 'left'

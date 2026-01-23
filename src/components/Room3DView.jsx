@@ -1,6 +1,6 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, Suspense, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Box, Text } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Text, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useTheme } from '../context/ThemeContext';
 
@@ -63,7 +63,7 @@ const ItemBox = ({ placement, roomHeight, layerIndex, totalLayers }) => {
       {/* Wireframe outline for layer separation */}
       <lineSegments>
         <edgesGeometry args={[new THREE.BoxGeometry(displayWidth, layerHeight, displayDepth)]} />
-        <lineBasicMaterial color="#000000" opacity={0.4} transparent linewidth={2} />
+        <lineBasicMaterial color="#000000" opacity={0.4} transparent lineWidth={2} />
       </lineSegments>
       
       {/* Product name label on top of stack (with increased spacing) */}
@@ -123,6 +123,71 @@ const ItemStack = ({ placements, roomHeight, productId }) => {
 };
 
 // Room floor component
+// Compass component for 3D view
+const Compass = ({ roomWidth, roomDepth, roomHeight }) => {
+  const width = roomWidth / 100;
+  const depth = roomDepth / 100;
+  const height = roomHeight / 100;
+  const compassSize = Math.min(width, depth) * 0.15;
+  const compassHeight = height * 0.1;
+  
+  return (
+    <group position={[width - compassSize * 0.6, compassHeight, depth - compassSize * 0.6]}>
+      {/* Compass base */}
+      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[compassSize * 0.5, compassSize * 0.5, 0.02, 32]} />
+        <meshStandardMaterial color="#1F2937" metalness={0.5} roughness={0.3} />
+      </mesh>
+      
+      {/* Compass needle pointing North */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <boxGeometry args={[compassSize * 0.3, 0.01, compassSize * 0.1]} />
+        <meshStandardMaterial color="#EF4444" emissive="#EF4444" emissiveIntensity={0.5} />
+      </mesh>
+      
+      {/* North label */}
+      <Html position={[0, 0.05, -compassSize * 0.3]} center>
+        <div className="bg-blue-600/90 text-white px-2 py-1 rounded text-xs font-bold shadow-lg">
+          N
+        </div>
+      </Html>
+      
+      {/* South label */}
+      <Html position={[0, 0.05, compassSize * 0.3]} center>
+        <div className="bg-red-600/90 text-white px-2 py-1 rounded text-xs font-bold shadow-lg">
+          S
+        </div>
+      </Html>
+      
+      {/* East label */}
+      <Html position={[compassSize * 0.3, 0.05, 0]} center>
+        <div className="bg-green-600/90 text-white px-2 py-1 rounded text-xs font-bold shadow-lg">
+          E
+        </div>
+      </Html>
+      
+      {/* West label */}
+      <Html position={[-compassSize * 0.3, 0.05, 0]} center>
+        <div className="bg-yellow-600/90 text-white px-2 py-1 rounded text-xs font-bold shadow-lg">
+          W
+        </div>
+      </Html>
+      
+      {/* Direction lines - North-South */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <boxGeometry args={[0.005, 0.005, compassSize * 0.8]} />
+        <meshStandardMaterial color="#3B82F6" emissive="#3B82F6" emissiveIntensity={0.3} />
+      </mesh>
+      
+      {/* Direction lines - East-West */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+        <boxGeometry args={[0.005, 0.005, compassSize * 0.8]} />
+        <meshStandardMaterial color="#10B981" emissive="#10B981" emissiveIntensity={0.3} />
+      </mesh>
+    </group>
+  );
+};
+
 const RoomFloor = ({ roomWidth, roomDepth, roomHeight, door = null }) => {
   const width = roomWidth / 100;
   const depth = roomDepth / 100;
@@ -161,22 +226,111 @@ const RoomFloor = ({ roomWidth, roomDepth, roomHeight, door = null }) => {
         <meshStandardMaterial color="#9CA3AF" opacity={0.1} transparent />
       </mesh>
 
-      {/* Door visualization */}
-      {door && (
-        <group>
-          <mesh
-            position={[
-              (door.x / 100) + (door.width / 100) / 2,
-              (door.height / 100) / 2,
-              door.wall === 'north' ? 0.05 : door.wall === 'south' ? depth - 0.05 : (door.y / 100) + (door.depth / 100) / 2
-            ]}
-            rotation={door.wall === 'east' || door.wall === 'west' ? [0, Math.PI / 2, 0] : [0, 0, 0]}
-          >
-            <boxGeometry args={[door.width / 100, door.height / 100, 0.15]} />
-            <meshStandardMaterial color="#FFA500" opacity={0.8} transparent />
-          </mesh>
-        </group>
-      )}
+      {/* Door visualization with unique highlighting */}
+      {door && door.x && door.y && door.width && door.height && (() => {
+        console.log('Rendering door in RoomFloor:', door);
+        const doorX = parseFloat(door.x) / 100;
+        const doorY = parseFloat(door.y) / 100;
+        const doorWidth = parseFloat(door.width) / 100;
+        const doorHeight = parseFloat(door.height) / 100;
+        const doorWall = door.wall || 'north';
+        
+        // Calculate position based on wall
+        let positionX, positionY, positionZ, rotation;
+        if (doorWall === 'north') {
+          positionX = doorX + doorWidth / 2;
+          positionY = doorHeight / 2;
+          positionZ = 0.05;
+          rotation = [0, 0, 0];
+        } else if (doorWall === 'south') {
+          positionX = doorX + doorWidth / 2;
+          positionY = doorHeight / 2;
+          positionZ = depth - 0.05;
+          rotation = [0, 0, 0];
+        } else if (doorWall === 'east') {
+          positionX = depth - 0.05;
+          positionY = doorHeight / 2;
+          positionZ = doorY + doorWidth / 2;
+          rotation = [0, Math.PI / 2, 0];
+        } else { // west
+          positionX = 0.05;
+          positionY = doorHeight / 2;
+          positionZ = doorY + doorWidth / 2;
+          rotation = [0, Math.PI / 2, 0];
+        }
+        
+        return (
+          <group key={`door-${door.x}-${door.y}-${door.width}-${door.height}-${doorWall}`}>
+            {/* Glowing outline effect */}
+            <mesh
+              position={[positionX, positionY, positionZ]}
+              rotation={rotation}
+            >
+              <boxGeometry args={[doorWidth + 0.02, doorHeight + 0.02, 0.18]} />
+              <meshStandardMaterial 
+                color="#FF6B00" 
+                emissive="#FF6B00"
+                emissiveIntensity={0.5}
+                opacity={0.4} 
+                transparent 
+              />
+            </mesh>
+            
+            {/* Main door with gradient-like effect */}
+            <mesh
+              position={[positionX, positionY, positionZ]}
+              rotation={rotation}
+            >
+              <boxGeometry args={[doorWidth, doorHeight, 0.15]} />
+              <meshStandardMaterial 
+                color="#FF8C00" 
+                emissive="#FFA500"
+                emissiveIntensity={0.3}
+                metalness={0.3}
+                roughness={0.4}
+                opacity={0.9} 
+                transparent 
+              />
+            </mesh>
+            
+            {/* Corner markers */}
+            {doorWall === 'north' || doorWall === 'south' ? (
+              <>
+                <mesh position={[doorX / 100, positionY, positionZ]} rotation={rotation}>
+                  <boxGeometry args={[0.02, 0.02, 0.2]} />
+                  <meshStandardMaterial color="#FF6B00" emissive="#FF6B00" emissiveIntensity={1} />
+                </mesh>
+                <mesh position={[(doorX + doorWidth) / 100, positionY, positionZ]} rotation={rotation}>
+                  <boxGeometry args={[0.02, 0.02, 0.2]} />
+                  <meshStandardMaterial color="#FF6B00" emissive="#FF6B00" emissiveIntensity={1} />
+                </mesh>
+              </>
+            ) : (
+              <>
+                <mesh position={[positionX, positionY, doorY / 100]} rotation={rotation}>
+                  <boxGeometry args={[0.02, 0.02, 0.2]} />
+                  <meshStandardMaterial color="#FF6B00" emissive="#FF6B00" emissiveIntensity={1} />
+                </mesh>
+                <mesh position={[positionX, positionY, (doorY + doorWidth) / 100]} rotation={rotation}>
+                  <boxGeometry args={[0.02, 0.02, 0.2]} />
+                  <meshStandardMaterial color="#FF6B00" emissive="#FF6B00" emissiveIntensity={1} />
+                </mesh>
+              </>
+            )}
+            
+            {/* Floating label above door */}
+            <Html
+              position={[positionX, positionY + doorHeight / 2 + 0.1, positionZ]}
+              center
+              distanceFactor={10}
+            >
+              <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white px-3 py-1 rounded-lg shadow-lg border-2 border-orange-400 font-bold text-xs whitespace-nowrap animate-pulse">
+                🚪 DOOR
+              </div>
+            </Html>
+          </group>
+        );
+      })()}
     </group>
   );
 };
@@ -187,6 +341,22 @@ const Scene = ({ room, placements, door = null }) => {
   const roomWidth = parseFloat(room?.width || 0) / 100;
   const roomDepth = parseFloat(room?.depth || 0) / 100;
   const roomHeight = parseFloat(room?.height || 0) / 100;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Scene component rendered:', {
+      roomWidth,
+      roomDepth,
+      roomHeight,
+      placementsCount: placements?.length || 0
+    });
+  }, [roomWidth, roomDepth, roomHeight, placements]);
+
+  // Validate dimensions
+  if (roomWidth <= 0 || roomDepth <= 0 || roomHeight <= 0) {
+    console.warn('Invalid room dimensions in Scene:', { roomWidth, roomDepth, roomHeight });
+    return null;
+  }
 
   // Calculate camera position to view entire room (closer initial view)
   const maxDimension = Math.max(roomWidth, roomDepth, roomHeight);
@@ -231,6 +401,12 @@ const Scene = ({ room, placements, door = null }) => {
     return Array.from(groups.entries());
   }, [placements]);
 
+  // Ensure we have valid dimensions
+  if (roomWidth <= 0 || roomDepth <= 0 || roomHeight <= 0) {
+    console.warn('Invalid room dimensions in Scene:', { roomWidth, roomDepth, roomHeight });
+    return null;
+  }
+
   return (
     <>
       {/* Enhanced Lighting for better visibility */}
@@ -239,27 +415,36 @@ const Scene = ({ room, placements, door = null }) => {
       <directionalLight position={[-10, 15, -10]} intensity={0.8} /> {/* Better fill light */}
       <pointLight position={[0, 25, 0]} intensity={0.6} /> {/* Brighter top light */}
       <spotLight position={[roomWidth / 2, roomHeight * 1.5, roomDepth / 2]} angle={0.4} intensity={0.5} penumbra={0.5} />
-
-      {/* Room structure */}
+      
+      {/* Room structure - Always render */}
       <RoomFloor
         roomWidth={parseFloat(room?.width || 0)}
         roomDepth={parseFloat(room?.depth || 0)}
         roomHeight={parseFloat(room?.height || 0)}
-        door={door}
+        door={door || room?.door || null}
+      />
+      
+      {/* Compass for orientation */}
+      <Compass
+        roomWidth={parseFloat(room?.width || 0)}
+        roomDepth={parseFloat(room?.depth || 0)}
+        roomHeight={parseFloat(room?.height || 0)}
       />
 
       {/* Placements grouped into stacks */}
-      {groupedStacks.map(([key, stackPlacements], index) => {
-        const firstPlacement = stackPlacements[0];
-        return (
-          <ItemStack
-            key={key}
-            placements={stackPlacements}
-            roomHeight={parseFloat(room?.height || 0)}
-            productId={firstPlacement.product_id}
-          />
-        );
-      })}
+      {groupedStacks.length > 0 ? (
+        groupedStacks.map(([key, stackPlacements], index) => {
+          const firstPlacement = stackPlacements[0];
+          return (
+            <ItemStack
+              key={key}
+              placements={stackPlacements}
+              roomHeight={parseFloat(room?.height || 0)}
+              productId={firstPlacement.product_id}
+            />
+          );
+        })
+      ) : null}
 
       {/* Camera with better initial positioning */}
       <PerspectiveCamera
@@ -294,60 +479,206 @@ const Scene = ({ room, placements, door = null }) => {
   );
 };
 
-const Room3DView = ({ room, placements = [], door = null }) => {
-  const { isDark } = useTheme();
+// Loading fallback component
+const CanvasLoader = () => (
+  <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+    <div className="text-center">
+      <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-white text-sm">Loading 3D visualization...</p>
+    </div>
+  </div>
+);
 
-  if (!room || !placements || placements.length === 0) {
+// Error Boundary Component
+const ErrorFallback = ({ error }) => (
+  <div className="absolute inset-0 flex items-center justify-center bg-red-900/20">
+    <div className="text-center p-4">
+      <p className="text-red-600 dark:text-red-400 font-semibold mb-2">3D Visualization Error</p>
+      <p className="text-sm text-red-500 dark:text-red-500">{error?.message || 'Unknown error'}</p>
+      <p className="text-xs text-red-400 dark:text-red-600 mt-2">Check browser console for details</p>
+    </div>
+  </div>
+);
+
+const Room3DView = ({ room, placements = [], door = null }) => {
+  // Use door prop if provided, otherwise use room.door
+  const doorData = door || room?.door;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('Room3DView - room:', room);
+    console.log('Room3DView - door prop:', door);
+    console.log('Room3DView - room.door:', room?.door);
+    console.log('Room3DView - final doorData:', doorData);
+  }, [room, door, doorData]);
+  const { isDark } = useTheme();
+  const [error, setError] = useState(null);
+  const [canvasReady, setCanvasReady] = useState(false);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Room3DView rendered:', {
+      hasRoom: !!room,
+      placementsCount: placements?.length || 0,
+      roomDimensions: room ? {
+        width: room.width,
+        depth: room.depth,
+        height: room.height
+      } : null
+    });
+  }, [room, placements]);
+
+  if (!room) {
     return (
-      <div className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
-        <p className="text-gray-600 dark:text-gray-400 mb-4">No placements to visualize</p>
-        <p className="text-sm text-gray-500 dark:text-gray-500">Generate a layout to see 3D visualization</p>
+      <div className="w-full glass rounded-lg p-8 text-center">
+        <p className="text-neutral-600 dark:text-neutral-400 mb-4">Room data not available</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-500">Please select a valid room</p>
       </div>
     );
   }
 
+  // Allow rendering even without placements to show room structure
+
+  // Validate room dimensions
+  const roomWidth = parseFloat(room.width || 0);
+  const roomDepth = parseFloat(room.depth || 0);
+  const roomHeight = parseFloat(room.height || 0);
+
+  if (roomWidth <= 0 || roomDepth <= 0 || roomHeight <= 0) {
+    return (
+      <div className="w-full glass rounded-lg p-8 text-center">
+        <p className="text-neutral-600 dark:text-neutral-400 mb-4">Invalid room dimensions</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-500">
+          Room dimensions must be greater than 0. Current: {roomWidth} × {roomDepth} × {roomHeight} cm
+        </p>
+      </div>
+    );
+  }
+
+  // Filter out invalid placements
+  const validPlacements = useMemo(() => {
+    if (!placements || placements.length === 0) return [];
+    return placements.filter(p => {
+      const x = parseFloat(p.x_position || 0);
+      const y = parseFloat(p.y_position || 0);
+      const z = parseFloat(p.z_position || 0);
+      const w = parseFloat(p.width || 0);
+      const d = parseFloat(p.depth || 0);
+      const h = parseFloat(p.height || 0);
+      return !isNaN(x) && !isNaN(y) && !isNaN(z) && 
+             !isNaN(w) && w > 0 && 
+             !isNaN(d) && d > 0 && 
+             !isNaN(h) && h > 0;
+    });
+  }, [placements]);
+
   return (
-    <div className="w-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+    <div className="w-full glass rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">3D Visualization</h3>
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          Room: {parseFloat(room.width || 0).toFixed(0)} × {parseFloat(room.depth || 0).toFixed(0)} × {parseFloat(room.height || 0).toFixed(0)} cm
+        <h3 className="text-lg font-bold text-neutral-900 dark:text-white">3D Visualization</h3>
+        <div className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+          Room: {roomWidth.toFixed(0)} × {roomDepth.toFixed(0)} × {roomHeight.toFixed(0)} cm
+          {validPlacements.length > 0 && ` | Items: ${validPlacements.length}`}
         </div>
       </div>
       
-      <div className="relative bg-gray-900 rounded-lg overflow-hidden" style={{ height: '600px', minHeight: '400px' }}>
-        <Canvas 
-          shadows 
-          gl={{ 
-            antialias: true, // Enable antialiasing for smoother edges
-            alpha: false, // Better performance
-            powerPreference: "high-performance" // Use dedicated GPU if available
-          }}
-          camera={{ fov: 55, near: 0.1, far: 1000 }}
-        >
-          <Scene room={room} placements={placements} door={door || room?.door} />
-        </Canvas>
+      <div 
+        className="relative bg-gradient-to-br from-neutral-900 to-neutral-950 rounded-lg overflow-hidden shadow-depth-lg" 
+        style={{ 
+          height: '600px', 
+          minHeight: '400px', 
+          width: '100%',
+          position: 'relative',
+          zIndex: 1
+        }}
+      >
+        {error && <ErrorFallback error={error} />}
+        {!error && (
+          <Suspense fallback={<CanvasLoader />}>
+            <Canvas 
+              shadows 
+              gl={{ 
+                antialias: true,
+                alpha: false,
+                powerPreference: "high-performance",
+                preserveDrawingBuffer: true,
+                stencil: false,
+                depth: true,
+                logarithmicDepthBuffer: true
+              }}
+              camera={{ fov: 55, near: 0.1, far: 1000 }}
+              dpr={[1, 2]}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                display: 'block',
+                position: 'relative',
+                zIndex: 1
+              }}
+              frameloop="always"
+              onCreated={(state) => {
+                try {
+                  // Ensure canvas is properly initialized
+                  console.log('✅ Canvas created successfully', {
+                    gl: !!state.gl,
+                    scene: !!state.scene,
+                    camera: !!state.camera,
+                    size: state.size,
+                    viewport: state.viewport
+                  });
+                  
+                  if (!state.gl) {
+                    throw new Error('WebGL context not available');
+                  }
+                  
+                  state.gl.setClearColor('#111827', 1);
+                  if (state.size) {
+                    state.gl.setSize(state.size.width, state.size.height);
+                  }
+                  setCanvasReady(true);
+                  setError(null);
+                } catch (err) {
+                  console.error('❌ Error in onCreated:', err);
+                  setError(err);
+                }
+              }}
+              onError={(error) => {
+                console.error('❌ Canvas error:', error);
+                setError(error);
+              }}
+            >
+              <color attach="background" args={['#111827']} />
+              <fog attach="fog" args={['#111827', 10, 50]} />
+              <Scene 
+                key={`scene-${doorData?.x || 'no-door'}-${doorData?.y || 'no-door'}-${doorData?.width || 'no-door'}-${doorData?.height || 'no-door'}-${doorData?.wall || 'north'}`}
+                room={room} 
+                placements={validPlacements} 
+                door={doorData || null} 
+              />
+            </Canvas>
+          </Suspense>
+        )}
       </div>
 
       {/* Enhanced Controls hint */}
       <div className="mt-4 space-y-2">
-        <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-          <p>🖱️ <strong>Left click + drag</strong> to rotate | <strong>Scroll</strong> to zoom (can zoom very close) | <strong>Right click + drag</strong> to pan</p>
+        <div className="text-xs text-neutral-500 dark:text-neutral-400 text-center bg-gradient-to-r from-primary-50/50 to-secondary-50/50 dark:from-primary-900/20 dark:to-secondary-900/20 rounded-lg p-2">
+          <p className="font-semibold">🖱️ <strong>Left click + drag</strong> to rotate | <strong>Scroll</strong> to zoom | <strong>Right click + drag</strong> to pan</p>
         </div>
-        <div className="text-xs text-gray-400 dark:text-gray-500 text-center">
+        <div className="text-xs text-neutral-400 dark:text-neutral-500 text-center">
           💡 Zoom in close to see product labels and layer indicators clearly
         </div>
       </div>
 
       {/* Legend */}
       <div className="mt-4 flex flex-wrap gap-4 text-sm justify-center">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-500 rounded border border-gray-300 dark:border-gray-600"></div>
-          <span className="text-gray-600 dark:text-gray-400">Product Stacks (Layers)</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-50/50 to-secondary-50/50 dark:from-primary-900/20 dark:to-secondary-900/20 rounded-lg">
+          <div className="w-4 h-4 bg-gradient-primary rounded border border-neutral-300 dark:border-neutral-600 shadow-sm"></div>
+          <span className="text-neutral-600 dark:text-neutral-400 font-semibold">Product Stacks (Layers)</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="text-xs text-gray-500 dark:text-gray-500">
-            Each square shows stacked boxes - each layer = one product box
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-success-50/50 to-primary-50/50 dark:from-success-900/20 dark:to-primary-900/20 rounded-lg">
+          <div className="text-xs text-neutral-500 dark:text-neutral-500 font-medium">
+            Each box represents a product item - stacked items show layers
           </div>
         </div>
       </div>

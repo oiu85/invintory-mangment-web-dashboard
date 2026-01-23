@@ -3,17 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getRooms, createRoom, updateRoom, deleteRoom } from '../api/roomApi';
-import Table from '../components/Table';
-import Modal from '../components/Modal';
+import Table from '../components/ui/Table';
+import Modal from '../components/ui/Modal';
 import ConfirmModal from '../components/ConfirmModal';
-import Input from '../components/Input';
-import Select from '../components/Select';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
 import Textarea from '../components/Textarea';
-import Button from '../components/Button';
-import SearchInput from '../components/SearchInput';
-import LoadingSpinner from '../components/LoadingSpinner';
-import Card from '../components/Card';
-import { Building2, Package, TrendingUp, AlertCircle } from 'lucide-react';
+import Button from '../components/ui/Button';
+import Skeleton from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import PageHeader from '../components/layout/PageHeader';
+import { Building2, Package, TrendingUp, AlertCircle, Search, Plus } from 'lucide-react';
 
 const Rooms = () => {
   const navigate = useNavigate();
@@ -158,70 +159,119 @@ const Rooms = () => {
     return sum + volume;
   }, 0);
 
-  if (loading) {
+  const StatCard = ({ title, value, icon: Icon, color, subtitle }) => {
+    const colorConfigs = {
+      blue: { iconBg: 'bg-gradient-to-br from-blue-500 to-blue-600', text: 'text-blue-600 dark:text-blue-400' },
+      green: { iconBg: 'bg-gradient-to-br from-success-500 to-success-600', text: 'text-success-600 dark:text-success-400' },
+      purple: { iconBg: 'bg-gradient-to-br from-secondary-500 to-secondary-600', text: 'text-secondary-600 dark:text-secondary-400' },
+    };
+    const config = colorConfigs[color] || colorConfigs.blue;
+
     return (
-      <div className="p-6">
-        <LoadingSpinner fullScreen />
-      </div>
+      <Card variant="glass" hover>
+        <Card.Body>
+          <div className="flex items-center justify-between mb-4">
+            <div className={`${config.iconBg} p-3 rounded-xl shadow-lg`}>
+              {Icon && <Icon className="w-6 h-6 text-white" />}
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">{title}</p>
+            <p className={`text-3xl font-bold ${config.text} mb-1`}>{value}</p>
+            {subtitle && <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{subtitle}</p>}
+          </div>
+        </Card.Body>
+      </Card>
     );
-  }
+  };
 
   return (
-    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleRooms')}</h1>
-          <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionRooms')}</p>
-        </div>
-        <Button onClick={handleCreate}>{t('addRoom')}</Button>
-      </div>
+    <div className="min-h-screen">
+      <PageHeader
+        title={t('pageTitleRooms')}
+        subtitle={t('pageDescriptionRooms')}
+        actions={
+          <Button onClick={handleCreate} icon={Plus} iconPosition="left">
+            {t('addRoom')}
+          </Button>
+        }
+      />
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card
-          title={t('totalRooms')}
-          value={totalRooms}
-          icon={Building2}
-          color="blue"
-          subtitle={t('allRooms')}
-        />
-        <Card
-          title={t('activeRooms')}
-          value={activeRooms}
-          icon={Package}
-          color="green"
-          subtitle={t('currentlyActive')}
-        />
-        <Card
-          title={t('totalCapacity')}
-          value={`${(totalCapacity / 1000000).toFixed(2)} m³`}
-          icon={TrendingUp}
-          color="purple"
-          subtitle={t('totalVolume')}
-        />
+        {loading ? (
+          <>
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} variant="elevated">
+                <Card.Body>
+                  <Skeleton variant="avatar" className="mb-4" />
+                  <Skeleton variant="title" className="mb-2" />
+                  <Skeleton variant="text" />
+                </Card.Body>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <StatCard
+              title={t('totalRooms')}
+              value={totalRooms}
+              icon={Building2}
+              color="blue"
+              subtitle={t('allRooms')}
+            />
+            <StatCard
+              title={t('activeRooms')}
+              value={activeRooms}
+              icon={Package}
+              color="green"
+              subtitle={t('currentlyActive')}
+            />
+            <StatCard
+              title={t('totalCapacity')}
+              value={`${(totalCapacity / 1000000).toFixed(2)} m³`}
+              icon={TrendingUp}
+              color="purple"
+              subtitle={t('totalVolume')}
+            />
+          </>
+        )}
       </div>
 
-      <div className="mb-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('searchRooms')}
-          className="max-w-md"
-        />
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t('searchRooms')}
+            className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
+          />
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+      <Card variant="glass" className="overflow-hidden">
         <Table
-          headers={[t('id'), t('roomName'), t('roomDimensions'), t('roomWarehouse'), t('roomStatus'), t('roomUtilization'), t('actions')]}
+          headers={[
+            { key: 'id', label: t('id'), sortable: true },
+            { key: 'roomName', label: t('roomName'), sortable: true },
+            { key: 'roomDimensions', label: t('roomDimensions') },
+            { key: 'roomWarehouse', label: t('roomWarehouse') },
+            { key: 'roomStatus', label: t('roomStatus'), sortable: true },
+            { key: 'roomUtilization', label: t('roomUtilization'), sortable: true },
+          ]}
           data={filteredRooms}
+          sortable={true}
+          loading={loading}
+          emptyMessage={t('noData')}
           renderRow={(room) => {
-            const dimensions = `${parseFloat(room.width || 0).toFixed(0)}×${parseFloat(room.depth || 0).toFixed(0)}×${parseFloat(room.height || 0).toFixed(0)} cm`;
-            const statusConfig = {
-              active: { bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-800 dark:text-green-300', label: t('active') },
-              inactive: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-800 dark:text-gray-200', label: t('inactive') },
-              maintenance: { bg: 'bg-yellow-100 dark:bg-yellow-900/50', text: 'text-yellow-800 dark:text-yellow-300', label: t('maintenance') },
+            const dimensions = `${parseFloat(room.width || 0).toFixed(0)}×${parseFloat(room.depth || 0).toFixed(0)}×${parseFloat(room.height || 0).toFixed(0)} ${t('cm')}`;
+            const statusVariants = {
+              active: 'success',
+              inactive: 'default',
+              maintenance: 'warning',
             };
-            const statusStyle = statusConfig[room.status] || statusConfig.active;
             const latestLayout = room.layouts && room.layouts.length > 0 
               ? room.layouts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
               : null;
@@ -229,40 +279,35 @@ const Rooms = () => {
 
             return (
               <>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{room.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">{room.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
-                    {dimensions}
-                  </span>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">{room.id}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100 font-semibold">{room.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                  <Badge variant="primary">{dimensions}</Badge>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                   {room.warehouse ? (
-                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-xs font-medium">
-                      {room.warehouse.name}
-                    </span>
+                    <Badge>{room.warehouse.name}</Badge>
                   ) : (
-                    <span className="text-gray-400 dark:text-gray-500">{t('nA')}</span>
+                    <span className="text-neutral-400 dark:text-neutral-500">{t('nA')}</span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
-                    {statusStyle.label}
-                  </span>
+                  <Badge variant={statusVariants[room.status] || 'default'} size="sm">
+                    {t(room.status) || room.status}
+                  </Badge>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                   {latestLayout ? (
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        utilization >= 80 ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' :
-                        utilization >= 50 ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300' :
-                        'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
-                      }`}>
-                        {utilization.toFixed(1)}%
-                      </span>
-                    </div>
+                    <Badge 
+                      variant={utilization >= 80 ? 'error' : utilization >= 50 ? 'warning' : 'success'}
+                      size="sm"
+                    >
+                      {utilization.toFixed(1)}%
+                    </Badge>
                   ) : (
-                    <span className="text-gray-400 dark:text-gray-500">{t('noLayout')}</span>
+                    <Badge variant="outline" size="sm">
+                      {t('noLayout')}
+                    </Badge>
                   )}
                 </td>
               </>
@@ -270,19 +315,19 @@ const Rooms = () => {
           }}
           actions={(room) => (
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => navigate(`/rooms/${room.id}`)}>
+              <Button variant="ghost" size="sm" onClick={() => navigate(`/rooms/${room.id}`)}>
                 {t('viewRoomDetails')}
               </Button>
-              <Button variant="secondary" onClick={() => handleEdit(room)}>
+              <Button variant="ghost" size="sm" onClick={() => handleEdit(room)}>
                 {t('edit')}
               </Button>
-              <Button variant="danger" onClick={() => handleDeleteClick(room)}>
+              <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(room)}>
                 {t('delete')}
               </Button>
             </div>
           )}
         />
-      </div>
+      </Card>
 
       <Modal
         isOpen={isModalOpen}

@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
 import { useToast } from '../context/ToastContext';
-import Table from '../components/Table';
-import Modal from '../components/Modal';
+import Table from '../components/ui/Table';
+import Modal from '../components/ui/Modal';
 import ConfirmModal from '../components/ConfirmModal';
-import Input from '../components/Input';
+import Input from '../components/ui/Input';
 import Textarea from '../components/Textarea';
-import Button from '../components/Button';
-import SearchInput from '../components/SearchInput';
-import LoadingSpinner from '../components/LoadingSpinner';
+import Button from '../components/ui/Button';
+import Skeleton from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import PageHeader from '../components/layout/PageHeader';
 import { useLanguage } from '../context/LanguageContext';
+import { Search, Tag } from 'lucide-react';
 
 const Categories = () => {
   const { showToast } = useToast();
@@ -129,93 +132,101 @@ const Categories = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <LoadingSpinner fullScreen />
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">{t('pageTitleCategories')}</h1>
-          <p className="text-gray-600 dark:text-gray-400">{t('pageDescriptionCategories')}</p>
+    <div className="min-h-screen">
+      <PageHeader
+        title={t('pageTitleCategories')}
+        subtitle={t('pageDescriptionCategories')}
+        actions={
+          <Button onClick={handleCreate} icon={Tag} iconPosition="left">
+            {t('addCategory')}
+          </Button>
+        }
+      />
+
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={t('searchCategories')}
+            className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100"
+          />
         </div>
-        <Button onClick={handleCreate}>{t('addCategory')}</Button>
       </div>
 
-      <div className="mb-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('searchCategories')}
-          className="max-w-md"
-        />
-      </div>
-
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <Card variant="glass" className="overflow-hidden">
         <Table
-          headers={[t('id'), t('name'), t('description'), t('productsCount'), t('totalValue'), t('created')]}
+          headers={[
+            { key: 'id', label: t('id'), sortable: true },
+            { key: 'name', label: t('name'), sortable: true },
+            { key: 'description', label: t('description') },
+            { key: 'productsCount', label: t('productsCount'), sortable: true },
+            { key: 'totalValue', label: t('totalValue'), sortable: true },
+            { key: 'created', label: t('created'), sortable: true },
+          ]}
           data={filteredCategories}
+          sortable={true}
+          loading={loading}
+          emptyMessage={t('noData')}
           renderRow={(category) => (
             <>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{category.id}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-semibold">{category.name}</td>
-              <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 max-w-xs">{category.description || t('nA')}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
-                  {category.product_count || 0} {t('products')}
-                </span>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">{category.id}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100 font-semibold">{category.name}</td>
+              <td className="px-6 py-4 text-sm text-neutral-900 dark:text-neutral-100 max-w-xs">{category.description || t('nA')}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                <Badge variant="primary">{category.product_count || 0} {t('products')}</Badge>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                <span className="font-semibold text-green-600 dark:text-green-400">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                <span className="font-semibold text-success-600 dark:text-success-400">
                   ${parseFloat(category.total_value || 0).toFixed(2)}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                 {new Date(category.created_at).toLocaleDateString()}
               </td>
             </>
           )}
           actions={(category) => (
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => handleEdit(category)}>
+              <Button variant="ghost" size="sm" onClick={() => handleEdit(category)}>
                 {t('edit')}
               </Button>
-              <Button variant="danger" onClick={() => handleDeleteClick(category)}>
+              <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(category)}>
                 {t('delete')}
               </Button>
             </div>
           )}
         />
-      </div>
+      </Card>
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingCategory ? t('editCategory') : t('createCategory')}
       >
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <Input
+            id="category-name"
             label={t('categoryName')}
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             required
           />
           <Textarea
+            id="category-description"
             label={t('categoryDescription')}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
           />
-          <div className="flex gap-2 mt-4">
-            <Button type="submit" disabled={submitting}>
-              {submitting ? t('saving') : editingCategory ? t('update') : t('create')}
+          <div className="flex gap-2 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+            <Button type="submit" loading={submitting} className="flex-1">
+              {editingCategory ? t('update') : t('create')}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
+            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
               {t('cancel')}
             </Button>
           </div>

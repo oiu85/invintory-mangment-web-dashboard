@@ -101,6 +101,108 @@ export const colors = {
     neutral: '#6b7280',
     stale: '#f59e0b',
   },
+  
+  // Vibrant Accent Colors
+  accent: {
+    purple: {
+      50: '#faf5ff',
+      100: '#f3e8ff',
+      200: '#e9d5ff',
+      300: '#d8b4fe',
+      400: '#c084fc',
+      500: '#a855f7',
+      600: '#9333ea',
+      700: '#7e22ce',
+      800: '#6b21a8',
+      900: '#581c87',
+    },
+    cyan: {
+      50: '#ecfeff',
+      100: '#cffafe',
+      200: '#a5f3fc',
+      300: '#67e8f9',
+      400: '#22d3ee',
+      500: '#06b6d4',
+      600: '#0891b2',
+      700: '#0e7490',
+      800: '#155e75',
+      900: '#164e63',
+    },
+    pink: {
+      50: '#fdf2f8',
+      100: '#fce7f3',
+      200: '#fbcfe8',
+      300: '#f9a8d4',
+      400: '#f472b6',
+      500: '#ec4899',
+      600: '#db2777',
+      700: '#be185d',
+      800: '#9f1239',
+      900: '#831843',
+    },
+  },
+  
+  // Gradient Definitions
+  gradients: {
+    primary: {
+      light: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)',
+      dark: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%)',
+      hover: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #9333ea 100%)',
+    },
+    secondary: {
+      light: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+      dark: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%)',
+      hover: 'linear-gradient(135deg, #4338ca 0%, #6d28d9 50%, #7e22ce 100%)',
+    },
+    success: {
+      light: 'linear-gradient(135deg, #22c55e 0%, #10b981 50%, #059669 100%)',
+      dark: 'linear-gradient(135deg, #16a34a 0%, #059669 50%, #047857 100%)',
+      hover: 'linear-gradient(135deg, #15803d 0%, #047857 50%, #065f46 100%)',
+    },
+    warning: {
+      light: 'linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #ea580c 100%)',
+      dark: 'linear-gradient(135deg, #d97706 0%, #ea580c 50%, #c2410c 100%)',
+      hover: 'linear-gradient(135deg, #b45309 0%, #c2410c 50%, #9a3412 100%)',
+    },
+    error: {
+      light: 'linear-gradient(135deg, #ef4444 0%, #f87171 50%, #fca5a5 100%)',
+      dark: 'linear-gradient(135deg, #dc2626 0%, #f87171 50%, #fca5a5 100%)',
+      hover: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%)',
+    },
+    accent: {
+      purple: 'linear-gradient(135deg, #a855f7 0%, #c084fc 50%, #d8b4fe 100%)',
+      cyan: 'linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #67e8f9 100%)',
+      pink: 'linear-gradient(135deg, #ec4899 0%, #f472b6 50%, #f9a8d4 100%)',
+      vibrant: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #22c55e 100%)',
+    },
+    background: {
+      light: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+      dark: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+      subtle: 'linear-gradient(180deg, rgba(59, 130, 246, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%)',
+    },
+  },
+  
+  // Glassmorphism Colors
+  glass: {
+    light: {
+      bg: 'rgba(255, 255, 255, 0.7)',
+      border: 'rgba(255, 255, 255, 0.18)',
+      shadow: 'rgba(0, 0, 0, 0.1)',
+    },
+    dark: {
+      bg: 'rgba(15, 23, 42, 0.7)',
+      border: 'rgba(255, 255, 255, 0.1)',
+      shadow: 'rgba(0, 0, 0, 0.3)',
+    },
+    primary: {
+      bg: 'rgba(59, 130, 246, 0.1)',
+      border: 'rgba(59, 130, 246, 0.2)',
+    },
+    secondary: {
+      bg: 'rgba(99, 102, 241, 0.1)',
+      border: 'rgba(99, 102, 241, 0.2)',
+    },
+  },
 };
 
 export const typography = {
@@ -109,24 +211,27 @@ export const typography = {
     mono: ['Fira Code', 'monospace'],
   },
   fontSize: {
-    xs: ['0.75rem', { lineHeight: '1rem' }],
-    sm: ['0.875rem', { lineHeight: '1.25rem' }],
-    base: ['1rem', { lineHeight: '1.5rem' }],
-    lg: ['1.125rem', { lineHeight: '1.75rem' }],
-    xl: ['1.25rem', { lineHeight: '1.75rem' }],
-    '2xl': ['1.5rem', { lineHeight: '2rem' }],
-    '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
-    '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
-    '5xl': ['3rem', { lineHeight: '1' }],
-    '6xl': ['3.75rem', { lineHeight: '1' }],
+    xs: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.025em' }],
+    sm: ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0.025em' }],
+    base: ['1rem', { lineHeight: '1.5rem', letterSpacing: '0.01em' }],
+    lg: ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '0.01em' }],
+    xl: ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '0em' }],
+    '2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.01em' }],
+    '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
+    '4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.02em' }],
+    '5xl': ['3rem', { lineHeight: '1', letterSpacing: '-0.03em' }],
+    '6xl': ['3.75rem', { lineHeight: '1', letterSpacing: '-0.03em' }],
   },
   fontWeight: {
+    thin: '100',
+    extralight: '200',
     light: '300',
     normal: '400',
     medium: '500',
     semibold: '600',
     bold: '700',
     extrabold: '800',
+    black: '900',
   },
 };
 
@@ -167,6 +272,30 @@ export const shadows = {
   '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
   inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
   none: 'none',
+  // Multi-layer shadows for depth
+  depth: {
+    sm: '0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.1)',
+    md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1), 0 0 0 1px rgb(0 0 0 / 0.05)',
+    lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1), 0 0 0 1px rgb(0 0 0 / 0.05)',
+    xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1), 0 0 0 1px rgb(0 0 0 / 0.05)',
+  },
+  // Glow effects
+  glow: {
+    primary: '0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2)',
+    secondary: '0 0 20px rgba(99, 102, 241, 0.4), 0 0 40px rgba(99, 102, 241, 0.2)',
+    success: '0 0 20px rgba(34, 197, 94, 0.4), 0 0 40px rgba(34, 197, 94, 0.2)',
+    warning: '0 0 20px rgba(245, 158, 11, 0.4), 0 0 40px rgba(245, 158, 11, 0.2)',
+    error: '0 0 20px rgba(239, 68, 68, 0.4), 0 0 40px rgba(239, 68, 68, 0.2)',
+    purple: '0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(168, 85, 247, 0.2)',
+    cyan: '0 0 20px rgba(6, 182, 212, 0.4), 0 0 40px rgba(6, 182, 212, 0.2)',
+    pink: '0 0 20px rgba(236, 72, 153, 0.4), 0 0 40px rgba(236, 72, 153, 0.2)',
+  },
+  // Combined shadow + glow
+  elevated: {
+    sm: '0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 10px rgba(59, 130, 246, 0.1)',
+    md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1), 0 0 15px rgba(59, 130, 246, 0.15)',
+    lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1), 0 0 20px rgba(59, 130, 246, 0.2)',
+  },
 };
 
 export const animations = {

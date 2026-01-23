@@ -1,14 +1,25 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Maximize2, DoorOpen } from 'lucide-react';
 
-const Room2DView = ({ room, placements = [], compartments = [], layout = null }) => {
+const Room2DView = ({ room, placements = [], compartments = [], layout = null, door = null }) => {
   const { isDark } = useTheme();
   const svgRef = useRef(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
+  // Use door prop if provided, otherwise use room.door
+  const doorData = door || room?.door;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('Room2DView - room:', room);
+    console.log('Room2DView - door prop:', door);
+    console.log('Room2DView - room.door:', room?.door);
+    console.log('Room2DView - final doorData:', doorData);
+  }, [room, door]);
 
   // Calculate base scale to fit room in view
   const baseViewBox = useMemo(() => {
@@ -185,31 +196,120 @@ const Room2DView = ({ room, placements = [], compartments = [], layout = null })
             Room Floor ({parseFloat(room?.width || 0).toFixed(0)} × {parseFloat(room?.depth || 0).toFixed(0)} cm)
           </text>
 
-          {/* Door visualization */}
-          {room?.door && (
-            <g>
-              <rect
-                x={(room.door.x * viewBox.scale) + viewBox.padding + pan.x}
-                y={(room.door.y * viewBox.scale) + viewBox.padding + pan.y}
-                width={room.door.width * viewBox.scale}
-                height={room.door.height * viewBox.scale}
-                fill="#FFA500"
-                fillOpacity="0.7"
-                stroke="#FF8C00"
-                strokeWidth={Math.max(1, 2 / zoom)}
-              />
-              <text
-                x={(room.door.x * viewBox.scale) + viewBox.padding + (room.door.width * viewBox.scale) / 2 + pan.x}
-                y={(room.door.y * viewBox.scale) + viewBox.padding + (room.door.height * viewBox.scale) / 2 + pan.y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="text-xs fill-white font-semibold pointer-events-none"
-                style={{ fontSize: `${10 / zoom}px` }}
-              >
-                Door
-              </text>
-            </g>
-          )}
+          {/* Door visualization with unique highlighting */}
+          {doorData && doorData.x && doorData.y && doorData.width && doorData.height && (() => {
+            const doorX = parseFloat(doorData.x);
+            const doorY = parseFloat(doorData.y);
+            const doorWidth = parseFloat(doorData.width);
+            const doorHeight = parseFloat(doorData.height);
+            const scaledX = (doorX * viewBox.scale) + viewBox.padding + pan.x;
+            const scaledY = (doorY * viewBox.scale) + viewBox.padding + pan.y;
+            const scaledWidth = doorWidth * viewBox.scale;
+            const scaledHeight = doorHeight * viewBox.scale;
+            const centerX = scaledX + scaledWidth / 2;
+            const centerY = scaledY + scaledHeight / 2;
+            
+            console.log('Rendering door in 2D view:', { doorX, doorY, doorWidth, doorHeight, wall: doorData.wall });
+            return (
+              <g key={`door-${doorX}-${doorY}-${doorWidth}-${doorHeight}-${doorData.wall || 'north'}`}>
+                {/* Outer glow effect */}
+                <rect
+                  x={scaledX - 3}
+                  y={scaledY - 3}
+                  width={scaledWidth + 6}
+                  height={scaledHeight + 6}
+                  fill="url(#doorGlow)"
+                  fillOpacity="0.3"
+                  rx="2"
+                />
+                
+                {/* Animated border */}
+                <rect
+                  x={scaledX - 2}
+                  y={scaledY - 2}
+                  width={scaledWidth + 4}
+                  height={scaledHeight + 4}
+                  fill="none"
+                  stroke="#FF6B00"
+                  strokeWidth={Math.max(2, 3 / zoom)}
+                  strokeDasharray="4 4"
+                  opacity="0.8"
+                  rx="2"
+                >
+                  <animate
+                    attributeName="stroke-dashoffset"
+                    values="0;8"
+                    dur="1.5s"
+                    repeatCount="indefinite"
+                  />
+                </rect>
+                
+                {/* Main door rectangle with gradient */}
+                <defs>
+                  <linearGradient id="doorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FF8C00" stopOpacity="0.9" />
+                    <stop offset="50%" stopColor="#FFA500" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#FFB84D" stopOpacity="0.8" />
+                  </linearGradient>
+                  <radialGradient id="doorGlow" cx="50%" cy="50%">
+                    <stop offset="0%" stopColor="#FF6B00" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#FF6B00" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+                
+                <rect
+                  x={scaledX}
+                  y={scaledY}
+                  width={scaledWidth}
+                  height={scaledHeight}
+                  fill="url(#doorGradient)"
+                  stroke="#FF6B00"
+                  strokeWidth={Math.max(2, 3 / zoom)}
+                  rx="2"
+                />
+                
+                {/* Corner markers */}
+                <circle cx={scaledX} cy={scaledY} r="4" fill="#FF6B00" />
+                <circle cx={scaledX + scaledWidth} cy={scaledY} r="4" fill="#FF6B00" />
+                <circle cx={scaledX} cy={scaledY + scaledHeight} r="4" fill="#FF6B00" />
+                <circle cx={scaledX + scaledWidth} cy={scaledY + scaledHeight} r="4" fill="#FF6B00" />
+                
+                {/* Door icon in center */}
+                <g transform={`translate(${centerX}, ${centerY}) scale(${Math.min(1, scaledWidth / 40)})`}>
+                  <circle r="18" fill="#FFFFFF" fillOpacity="0.9" />
+                  <circle r="18" fill="none" stroke="#FF6B00" strokeWidth="2" />
+                  <path
+                    d="M-8,-6 L-8,6 M8,-6 L8,6 M-8,0 L8,0"
+                    stroke="#FF6B00"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                </g>
+                
+                {/* Door label with background */}
+                <rect
+                  x={centerX - 25}
+                  y={scaledY - 18}
+                  width="50"
+                  height="14"
+                  fill="#FF6B00"
+                  fillOpacity="0.95"
+                  rx="3"
+                />
+                <text
+                  x={centerX}
+                  y={scaledY - 8}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-white font-bold pointer-events-none"
+                  style={{ fontSize: `${Math.max(8, 10 / zoom)}px` }}
+                >
+                  DOOR
+                </text>
+              </g>
+            );
+          })()}
 
           {/* Compartment boundaries */}
           {compartments && compartments.length > 0 && compartments.map((compartment, compIndex) => {
@@ -377,7 +477,7 @@ const Room2DView = ({ room, placements = [], compartments = [], layout = null })
             <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
             <span className="text-gray-600 dark:text-gray-400">Position (X, Y)</span>
           </div>
-          {room?.door && (
+          {doorData && (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-orange-500 rounded"></div>
               <span className="text-gray-600 dark:text-gray-400">Door</span>

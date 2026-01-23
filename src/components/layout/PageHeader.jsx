@@ -34,9 +34,13 @@ const PageHeader = ({
               {title}
             </h1>
             {subtitle && (
-              <p className="text-neutral-600 dark:text-neutral-400">
-                {subtitle}
-              </p>
+              <div className="text-neutral-600 dark:text-neutral-400">
+                {typeof subtitle === 'string' ? (
+                  <p>{subtitle}</p>
+                ) : (
+                  subtitle
+                )}
+              </div>
             )}
           </div>
         </div>

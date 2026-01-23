@@ -3,15 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getRoom, getRoomStats, getLayout, getPlacements, deleteLayout } from '../api/roomApi';
-import Button from '../components/Button';
-import LoadingSpinner from '../components/LoadingSpinner';
-import Card from '../components/Card';
-import Table from '../components/Table';
+import Button from '../components/ui/Button';
+import Skeleton from '../components/ui/Skeleton';
+import Card from '../components/ui/Card';
+import Table from '../components/ui/Table';
+import Badge from '../components/ui/Badge';
+import Tabs from '../components/ui/Tabs';
 import ConfirmModal from '../components/ConfirmModal';
+import PageHeader from '../components/layout/PageHeader';
+import EmptyState from '../components/ui/ErrorState';
 import Room2DView from '../components/Room2DView';
 import Room3DView from '../components/Room3DView';
 import DoorConfig from '../components/DoorConfig';
-import { Building2, Package, TrendingUp, Box, List, History, ArrowLeft, Maximize2, Trash2, Grid3x3, Boxes, DoorOpen } from 'lucide-react';
+import { Building2, Package, TrendingUp, Box, List, History, ArrowLeft, Maximize2, Trash2, Grid3x3, Boxes, DoorOpen, AlertCircle } from 'lucide-react';
 
 const RoomDetails = () => {
   const { id } = useParams();
@@ -26,6 +30,7 @@ const RoomDetails = () => {
   const [activeTab, setActiveTab] = useState('layout');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState('2d'); // '2d' or '3d'
+  const [doorUpdateKey, setDoorUpdateKey] = useState(0);
 
   useEffect(() => {
     fetchRoomData();
@@ -38,6 +43,8 @@ const RoomDetails = () => {
         getRoom(id),
         getRoomStats(id).catch(() => null),
       ]);
+      console.log('Fetched room data:', roomData);
+      console.log('Room door:', roomData?.door);
       setRoom(roomData);
       setStats(statsData);
 
@@ -109,20 +116,39 @@ const RoomDetails = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <LoadingSpinner fullScreen />
+      <div className="min-h-screen">
+        <PageHeader
+          title={<Skeleton variant="heading" className="w-48" />}
+          subtitle={<Skeleton variant="text" className="w-64" />}
+        />
+        <Card variant="glass">
+          <Card.Body>
+            <div className="space-y-4">
+              <Skeleton variant="title" />
+              <Skeleton variant="text" />
+              <Skeleton variant="text" />
+              <Skeleton variant="text" className="w-3/4" />
+            </div>
+          </Card.Body>
+        </Card>
       </div>
     );
   }
 
   if (!room) {
     return (
-      <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center border border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('roomNotFound')}</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">{t('roomNotFoundMessage')}</p>
-          <Button onClick={() => navigate('/rooms')}>{t('backToRooms')}</Button>
-        </div>
+      <div className="min-h-screen">
+        <PageHeader
+          title={t('roomNotFound')}
+          subtitle={t('roomNotFoundMessage')}
+        />
+        <EmptyState
+          icon={AlertCircle}
+          title={t('roomNotFound')}
+          description={t('roomNotFoundMessage')}
+          action={() => navigate('/rooms')}
+          actionLabel={t('backToRooms')}
+        />
       </div>
     );
   }
@@ -173,6 +199,56 @@ const RoomDetails = () => {
   // Clamp utilization between 0 and 100
   utilization = Math.max(0, Math.min(100, utilization));
   
+  // StatCard component (similar to Dashboard)
+  const StatCard = ({ title, value, icon: Icon, color, subtitle }) => {
+    const colorConfigs = {
+      blue: {
+        bg: 'bg-primary-50 dark:bg-primary-900/20',
+        iconBg: 'bg-primary-100 dark:bg-primary-900/30',
+        text: 'text-primary-600 dark:text-primary-400',
+      },
+      green: {
+        bg: 'bg-success-50 dark:bg-success-900/20',
+        iconBg: 'bg-success-100 dark:bg-success-900/30',
+        text: 'text-success-600 dark:text-success-400',
+      },
+      purple: {
+        bg: 'bg-secondary-50 dark:bg-secondary-900/20',
+        iconBg: 'bg-secondary-100 dark:bg-secondary-900/30',
+        text: 'text-secondary-600 dark:text-secondary-400',
+      },
+      orange: {
+        bg: 'bg-warning-50 dark:bg-warning-900/20',
+        iconBg: 'bg-warning-100 dark:bg-warning-900/30',
+        text: 'text-warning-600 dark:text-warning-400',
+      },
+      red: {
+        bg: 'bg-error-50 dark:bg-error-900/20',
+        iconBg: 'bg-error-100 dark:bg-error-900/30',
+        text: 'text-error-600 dark:text-error-400',
+      },
+    };
+
+    const config = colorConfigs[color] || colorConfigs.blue;
+
+    return (
+      <Card variant="glass" className="overflow-hidden">
+        <Card.Body>
+          <div className="flex items-center justify-between mb-4">
+            <div className={`p-3 rounded-lg ${config.iconBg}`}>
+              <Icon className={`w-6 h-6 ${config.text}`} />
+            </div>
+          </div>
+          <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">{title}</p>
+          <p className={`text-3xl font-bold ${config.text} mb-1`}>{value}</p>
+          {subtitle && (
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">{subtitle}</p>
+          )}
+        </Card.Body>
+      </Card>
+    );
+  };
+
   const tabs = [
     { id: 'layout', label: t('layoutView'), icon: Maximize2 },
     { id: 'placements', label: t('placements'), icon: List },
@@ -180,79 +256,82 @@ const RoomDetails = () => {
   ];
 
   return (
-    <div className="p-6 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm min-h-screen relative z-10">
-      <div className="mb-6">
-        <Button variant="secondary" onClick={() => navigate('/rooms')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          {t('backToRooms')}
-        </Button>
-      </div>
+    <div className="min-h-screen">
+      <PageHeader
+        title={room.name}
+        subtitle={room.warehouse?.name || t('nA')}
+        showBack
+        backPath="/rooms"
+        actions={
+          <Badge
+            variant={
+              room.status === 'active' ? 'success' :
+              room.status === 'maintenance' ? 'warning' : 'default'
+            }
+            size="lg"
+          >
+            {t(room.status)}
+          </Badge>
+        }
+      />
 
       {/* Room Information Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white">{room.name}</h1>
-          <span className={`px-4 py-2 rounded-full font-semibold ${
-            room.status === 'active' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' :
-            room.status === 'maintenance' ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300' :
-            'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-          }`}>
-            {t(room.status)}
-          </span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('roomDimensions')}</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              {parseFloat(room.width || 0).toFixed(0)} × {parseFloat(room.depth || 0).toFixed(0)} × {parseFloat(room.height || 0).toFixed(0)} cm
-            </p>
+      <Card variant="glass" className="mb-6">
+        <Card.Body>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-neutral-50 dark:bg-neutral-700/50 p-4 rounded-lg">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">{t('roomDimensions')}</p>
+              <p className="text-lg font-semibold text-neutral-900 dark:text-white">
+                {parseFloat(room.width || 0).toFixed(0)} × {parseFloat(room.depth || 0).toFixed(0)} × {parseFloat(room.height || 0).toFixed(0)} {t('cm')}
+              </p>
+            </div>
+            <div className="bg-neutral-50 dark:bg-neutral-700/50 p-4 rounded-lg">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">{t('roomVolume')}</p>
+              <p className="text-lg font-semibold text-neutral-900 dark:text-white">
+                {(roomVolume / 1000000).toFixed(2)} {t('m3')}
+              </p>
+            </div>
+            <div className="bg-neutral-50 dark:bg-neutral-700/50 p-4 rounded-lg">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">{t('roomArea')}</p>
+              <p className="text-lg font-semibold text-neutral-900 dark:text-white">
+                {(roomArea / 10000).toFixed(2)} {t('m2')}
+              </p>
+            </div>
+            <div className="bg-neutral-50 dark:bg-neutral-700/50 p-4 rounded-lg">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">{t('roomWarehouse')}</p>
+              <p className="text-lg font-semibold text-neutral-900 dark:text-white">
+                {room.warehouse?.name || t('nA')}
+              </p>
+            </div>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('roomVolume')}</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              {(roomVolume / 1000000).toFixed(2)} m³
-            </p>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('roomArea')}</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              {(roomArea / 10000).toFixed(2)} m²
-            </p>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('roomWarehouse')}</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              {room.warehouse?.name || t('nA')}
-            </p>
-          </div>
-        </div>
-        {room.description && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('roomDescription')}</p>
-            <p className="text-gray-900 dark:text-white">{room.description}</p>
-          </div>
-        )}
-      </div>
+          {room.description && (
+            <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">{t('roomDescription')}</p>
+              <p className="text-neutral-900 dark:text-white">{room.description}</p>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card
+        <StatCard
           title={t('roomUtilization')}
           value={`${utilization.toFixed(1)}%`}
           icon={TrendingUp}
           color={utilization >= 80 ? 'green' : utilization >= 50 ? 'orange' : 'red'}
           subtitle={latestLayout ? t('currentLayout') : t('noLayout')}
         />
-        <Card
+        <StatCard
           title={t('itemsPlaced')}
           value={placements.length || (latestLayout?.total_items_placed || 0)}
           icon={Package}
           color="blue"
           subtitle={t('itemsInRoom')}
         />
-        <Card
+        <StatCard
           title={t('availableSpace')}
-          value={`${(((100 - Math.max(0, Math.min(100, utilization))) / 100) * roomVolume / 1000000).toFixed(2)} m³`}
+          value={`${(((100 - Math.max(0, Math.min(100, utilization))) / 100) * roomVolume / 1000000).toFixed(2)} ${t('m3')}`}
           icon={Box}
           color="purple"
           subtitle={t('remainingCapacity')}
@@ -261,7 +340,15 @@ const RoomDetails = () => {
 
       {/* Door Configuration */}
       <div className="mb-6">
-        <DoorConfig roomId={id} room={room} onUpdate={fetchRoomData} />
+        <DoorConfig 
+          roomId={id} 
+          room={room} 
+          onUpdate={() => {
+            fetchRoomData();
+            // Force re-render of views by updating key
+            setDoorUpdateKey(prev => prev + 1);
+          }} 
+        />
       </div>
 
       {/* Action Buttons */}
@@ -277,8 +364,7 @@ const RoomDetails = () => {
             }}>
               {t('optimizeLayout')}
             </Button>
-            <Button variant="danger" onClick={() => setIsDeleteModalOpen(true)}>
-              <Trash2 className="w-4 h-4 mr-2" />
+            <Button variant="destructive" onClick={() => setIsDeleteModalOpen(true)} icon={Trash2}>
               {t('clearLayout')}
             </Button>
           </>
@@ -286,31 +372,13 @@ const RoomDetails = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex -mb-px">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                    isActive
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="p-6">
+      <Card variant="glass">
+        <Tabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        >
+          <div className="p-6">
           {/* Layout View Tab */}
           {activeTab === 'layout' && (
             <div>
@@ -323,7 +391,7 @@ const RoomDetails = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{t('algorithm')}</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{latestLayout.algorithm_used || layout?.algorithm || 'laff_maxrects'}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{latestLayout.algorithm_used || layout?.algorithm || t('algorithm')}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{t('utilizationPercentage')}</p>
@@ -339,8 +407,8 @@ const RoomDetails = () => {
                       </div>
                     </div>
                   </div>
-                  {/* Visualization Toggle */}
-                  {placements.length > 0 && (
+                  {/* Visualization Toggle - Always show if layout exists */}
+                  {latestLayout && (
                     <div className="mb-4 flex gap-2 justify-end">
                       <Button
                         variant={viewMode === '2d' ? 'primary' : 'secondary'}
@@ -348,7 +416,7 @@ const RoomDetails = () => {
                         onClick={() => setViewMode('2d')}
                       >
                         <Grid3x3 className="w-4 h-4 mr-2" />
-                        2D View
+                        {t('view2D')}
                       </Button>
                       <Button
                         variant={viewMode === '3d' ? 'primary' : 'secondary'}
@@ -356,17 +424,19 @@ const RoomDetails = () => {
                         onClick={() => setViewMode('3d')}
                       >
                         <Boxes className="w-4 h-4 mr-2" />
-                        3D View
+                        {t('view3D')}
                       </Button>
                     </div>
                   )}
 
                   {/* Visualization */}
-                  {placements.length > 0 ? (
+                  {latestLayout ? (
                     viewMode === '2d' ? (
                       <Room2DView 
+                        key={`2d-view-${doorUpdateKey}`}
                         room={room} 
-                        placements={placements}
+                        placements={placements || []}
+                        door={room?.door}
                         compartments={
                           layout?.compartments || 
                           (typeof latestLayoutFromRoom?.compartment_config === 'object' && latestLayoutFromRoom?.compartment_config?.compartments) ||
@@ -385,15 +455,16 @@ const RoomDetails = () => {
                       />
                     ) : (
                       <Room3DView 
+                        key={`3d-view-${doorUpdateKey}`}
                         room={room} 
-                        placements={placements}
+                        placements={placements || []}
                         door={room?.door}
                       />
                     )
                   ) : (
-                    <div className="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-8 text-center">
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">{t('visualizationPlaceholder')}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-500">{t('visualizationComingSoon')}</p>
+                    <div className="glass rounded-lg p-8 text-center">
+                      <p className="text-neutral-600 dark:text-neutral-400 mb-4">{t('visualizationPlaceholder') || 'No layout available'}</p>
+                      <p className="text-sm text-neutral-500 dark:text-neutral-500">{t('visualizationComingSoon') || 'Generate a layout to see visualization'}</p>
                     </div>
                   )}
 
@@ -416,7 +487,7 @@ const RoomDetails = () => {
                         ))}
                         {layout.unplaced_items.length > 50 && (
                           <p className="text-xs mt-2">
-                            {t('showingFirst') || 'Showing first'} 50 / {layout.unplaced_items.length}
+                            {t('showingFirst')} 50 / {layout.unplaced_items.length}
                           </p>
                         )}
                       </div>
@@ -445,40 +516,40 @@ const RoomDetails = () => {
                   data={placements}
                   renderRow={(placement) => (
                     <>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {placement.product?.name || `Product #${placement.product_id}`}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        {placement.product?.name || `${t('productNumber')}${placement.product_id}`}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                         <span className="font-mono text-xs">
-                          X: {parseFloat(placement.x_position || 0).toFixed(1)}<br />
-                          Y: {parseFloat(placement.y_position || 0).toFixed(1)}<br />
-                          Z: {parseFloat(placement.z_position || 0).toFixed(1)}
+                          {t('xPosition')}: {parseFloat(placement.x_position || 0).toFixed(1)}<br />
+                          {t('yPosition')}: {parseFloat(placement.y_position || 0).toFixed(1)}<br />
+                          {t('zPosition')}: {parseFloat(placement.z_position || 0).toFixed(1)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        W: {parseFloat(placement.width || 0).toFixed(0)} × D: {parseFloat(placement.depth || 0).toFixed(0)} × H: {parseFloat(placement.height || 0).toFixed(0)} cm
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                        {t('width')}: {parseFloat(placement.width || 0).toFixed(0)} × {t('depth')}: {parseFloat(placement.depth || 0).toFixed(0)} × {t('height')}: {parseFloat(placement.height || 0).toFixed(0)} {t('cm')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {placement.rotation || '0'}°
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                        {placement.rotation || '0'}{t('degrees')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                         {placement.stack_id ? (
-                          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full text-xs">
+                          <Badge variant="success" size="sm">
                             {t('stackPosition')}: {placement.stack_position || 1}
-                          </span>
+                          </Badge>
                         ) : (
-                          <span className="text-gray-400 dark:text-gray-500">{t('groundLevel')}</span>
+                          <span className="text-neutral-400 dark:text-neutral-500">{t('groundLevel')}</span>
                         )}
                       </td>
                     </>
                   )}
                 />
               ) : (
-                <div className="text-center py-12">
-                  <List className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('noPlacements')}</h3>
-                  <p className="text-gray-600 dark:text-gray-400">{t('generateLayoutToSeePlacements')}</p>
-                </div>
+                <EmptyState
+                  icon={List}
+                  title={t('noPlacements')}
+                  description={t('generateLayoutToSeePlacements')}
+                />
               )}
             </div>
           )}
@@ -492,25 +563,27 @@ const RoomDetails = () => {
                   data={room.layouts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))}
                   renderRow={(layout) => (
                     <>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                         {new Date(layout.created_at).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {layout.algorithm_used || 'laff_maxrects'}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                        {layout.algorithm_used || t('algorithm')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          (parseFloat(layout.utilization_percentage || 0)) >= 80 ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' :
-                          (parseFloat(layout.utilization_percentage || 0)) >= 50 ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300' :
-                          'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
-                        }`}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                        <Badge
+                          variant={
+                            (parseFloat(layout.utilization_percentage || 0)) >= 80 ? 'success' :
+                            (parseFloat(layout.utilization_percentage || 0)) >= 50 ? 'warning' : 'error'
+                          }
+                          size="sm"
+                        >
                           {parseFloat(layout.utilization_percentage || 0).toFixed(1)}%
-                        </span>
+                        </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                         {layout.total_items_placed || 0}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
                         <Button variant="secondary" size="sm" onClick={() => {
                           setLayout(layout);
                           setActiveTab('layout');
@@ -522,16 +595,17 @@ const RoomDetails = () => {
                   )}
                 />
               ) : (
-                <div className="text-center py-12">
-                  <History className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('noHistory')}</h3>
-                  <p className="text-gray-600 dark:text-gray-400">{t('layoutHistoryWillAppearHere')}</p>
-                </div>
+                <EmptyState
+                  icon={History}
+                  title={t('noHistory')}
+                  description={t('layoutHistoryWillAppearHere')}
+                />
               )}
             </div>
           )}
-        </div>
-      </div>
+          </div>
+        </Tabs>
+      </Card>
 
       <ConfirmModal
         isOpen={isDeleteModalOpen}
