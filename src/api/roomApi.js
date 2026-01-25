@@ -165,3 +165,19 @@ export const refreshRoomLayout = async (roomId) => {
   const response = await axiosClient.post(`/rooms/${roomId}/layout/refresh`);
   return response.data;
 };
+
+// Layout Validation
+export const validateLayout = async (roomId, items) => {
+  const response = await axiosClient.post(`/rooms/${roomId}/validate-layout`, { items });
+  return response.data;
+};
+
+// Capacity Calculation
+export const calculateRoomCapacity = async (roomId, items) => {
+  const response = await axiosClient.post(`/rooms/${roomId}/validate-layout`, { items });
+  return {
+    capacity: response.data.capacity,
+    suggestions: response.data.suggestions,
+    room_validation: response.data.room_validation,
+  };
+};

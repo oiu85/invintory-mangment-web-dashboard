@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
-import { generateLayout } from '../api/roomApi';
+import { generateLayout, getRoom } from '../api/roomApi';
 import { getAllProductDimensions } from '../api/roomApi';
 import axiosClient from '../api/axiosClient';
 import Input from './Input';
 import Select from './Select';
 import Button from './Button';
 import LoadingSpinner from './LoadingSpinner';
-import { Package, Plus, Trash2, AlertCircle, Wand2 } from 'lucide-react';
+import ValidationPanel from './layout/ValidationPanel';
+import PreviewPanel from './layout/PreviewPanel';
+import { Package, Plus, Trash2, AlertCircle, Wand2, CheckCircle2, XCircle } from 'lucide-react';
 
 const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
   const { showToast } = useToast();
@@ -40,13 +42,25 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [room, setRoom] = useState(null);
+  const [validationResult, setValidationResult] = useState(null);
 
   // Auto-populate from stock when all data is ready (only once on initial load)
   const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, []);
+    fetchRoom();
+  }, [roomId]);
+
+  const fetchRoom = async () => {
+    try {
+      const roomData = await getRoom(roomId);
+      setRoom(roomData);
+    } catch (error) {
+      console.error('Error fetching room:', error);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -357,8 +371,39 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
 
   const productsWithDimensions = products.filter(p => getProductDimensions(p.id));
 
+  // Prepare items for validation (with dimensions)
+  const itemsForValidation = items
+    .filter(item => item.product_id)
+    .map(item => {
+      const dim = getProductDimensions(item.product_id);
+      return {
+        product_id: parseInt(item.product_id),
+        quantity: parseInt(item.quantity) || 1,
+        width: dim?.width || 0,
+        depth: dim?.depth || 0,
+        height: dim?.height || 0,
+      };
+    })
+    .filter(item => item.width > 0 && item.depth > 0 && item.height > 0);
+
   return (
     <div className="space-y-6">
+      {/* Validation and Preview Panels */}
+      {itemsForValidation.length > 0 && room && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ValidationPanel
+            roomId={roomId}
+            items={itemsForValidation}
+            onValidationChange={setValidationResult}
+          />
+          <PreviewPanel
+            roomId={roomId}
+            items={itemsForValidation}
+            room={room}
+          />
+        </div>
+      )}
+
       <form onSubmit={handleGenerate} className="space-y-6">
         {/* Init from Warehouse Stock - Primary Method */}
         <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-lg border-2 border-indigo-200 dark:border-indigo-800 p-6">
@@ -516,8 +561,31 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
                   </div>
                   {productDim && (
                     <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-800 dark:text-blue-300">
-                      <strong>{t('dimensions')}:</strong> {parseFloat(productDim.width || 0).toFixed(0)} × {parseFloat(productDim.depth || 0).toFixed(0)} × {parseFloat(productDim.height || 0).toFixed(0)} cm
-                      {productDim.weight && ` | ${t('weight')}: ${parseFloat(productDim.weight).toFixed(2)} kg`}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <strong>{t('dimensions')}:</strong> {parseFloat(productDim.width || 0).toFixed(0)} × {parseFloat(productDim.depth || 0).toFixed(0)} × {parseFloat(productDim.height || 0).toFixed(0)} cm
+                          {productDim.weight && ` | ${t('weight')}: ${parseFloat(productDim.weight).toFixed(2)} kg`}
+                        </div>
+                        {/* Stock indicator */}
+                        {(() => {
+                          const stock = warehouseStock.find(s => s.product_id === parseInt(item.product_id));
+                          const available = stock?.quantity || 0;
+                          const requested = parseInt(item.quantity) || 0;
+                          const hasStock = available >= requested;
+                          return (
+                            <div className="flex items-center gap-1">
+                              {hasStock ? (
+                                <CheckCircle2 className="w-4 h-4 text-success-600 dark:text-success-400" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-error-600 dark:text-error-400" />
+                              )}
+                              <span className={hasStock ? 'text-success-600 dark:text-success-400' : 'text-error-600 dark:text-error-400'}>
+                                {available} {t('available') || 'available'}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   )}
                   {item.product_id && !productDim && (
@@ -679,9 +747,23 @@ const LayoutGenerator = ({ roomId, onSuccess, onClose }) => {
 
         {/* Actions */}
         <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <Button type="submit" disabled={submitting || items.length === 0 || items.every(item => !item.product_id)}>
+          <Button 
+            type="submit" 
+            disabled={
+              submitting || 
+              items.length === 0 || 
+              items.every(item => !item.product_id) ||
+              (validationResult && !validationResult.valid)
+            }
+          >
             {submitting ? t('generatingLayout') : t('generateLayout')}
           </Button>
+          {validationResult && !validationResult.valid && (
+            <div className="flex items-center gap-2 text-error-600 dark:text-error-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{t('fixValidationErrors') || 'Please fix validation errors before generating'}</span>
+            </div>
+          )}
           {onClose && (
             <Button type="button" variant="secondary" onClick={onClose}>
               {t('close')}

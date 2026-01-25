@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
-import { getRoom, getRoomStats, getLayout, getPlacements, deleteLayout } from '../api/roomApi';
+import { getRoom, getRoomStats, getLayout, getPlacements, deleteLayout, calculateRoomCapacity } from '../api/roomApi';
+import axiosClient from '../api/axiosClient';
 import Button from '../components/ui/Button';
 import Skeleton from '../components/ui/Skeleton';
 import Card from '../components/ui/Card';
@@ -31,10 +32,60 @@ const RoomDetails = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState('2d'); // '2d' or '3d'
   const [doorUpdateKey, setDoorUpdateKey] = useState(0);
+  const [products, setProducts] = useState([]);
+  const [warehouseStock, setWarehouseStock] = useState([]);
+  const [productCompatibility, setProductCompatibility] = useState({});
 
   useEffect(() => {
     fetchRoomData();
+    fetchProductsAndStock();
   }, [id]);
+
+  const fetchProductsAndStock = async () => {
+    try {
+      const [productsResponse, stockResponse] = await Promise.all([
+        axiosClient.get('/products'),
+        axiosClient.get('/warehouse-stock'),
+      ]);
+      setProducts(productsResponse.data || []);
+      setWarehouseStock(stockResponse.data || []);
+      
+      // Calculate product compatibility
+      if (room) {
+        calculateCompatibility();
+      }
+    } catch (error) {
+      console.error('Error fetching products and stock:', error);
+    }
+  };
+
+  const calculateCompatibility = async () => {
+    if (!room || products.length === 0) return;
+
+    const compatibility = {};
+    for (const product of products) {
+      if (product.product_dimension) {
+        const dim = product.product_dimension;
+        const fits = 
+          dim.width <= room.width &&
+          dim.depth <= room.depth &&
+          dim.height <= room.height;
+        
+        compatibility[product.id] = {
+          fits,
+          dimensions: `${dim.width}×${dim.depth}×${dim.height} cm`,
+          stock: warehouseStock.find(s => s.product_id === product.id)?.quantity || 0,
+        };
+      }
+    }
+    setProductCompatibility(compatibility);
+  };
+
+  useEffect(() => {
+    if (room && products.length > 0) {
+      calculateCompatibility();
+    }
+  }, [room, products, warehouseStock]);
 
   const fetchRoomData = async () => {
     try {
@@ -312,6 +363,89 @@ const RoomDetails = () => {
           )}
         </Card.Body>
       </Card>
+
+      {/* Room Capacity Information */}
+      <Card variant="glass" className="mb-6">
+        <Card.Body>
+          <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">
+            {t('roomCapacity') || 'Room Capacity'}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
+                {t('totalVolume') || 'Total Volume'}
+              </p>
+              <p className="text-xl font-bold text-primary-600 dark:text-primary-400">
+                {(roomVolume / 1000000).toFixed(2)} m³
+              </p>
+            </div>
+            <div className="p-3 bg-success-50 dark:bg-success-900/20 rounded-lg">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
+                {t('floorArea') || 'Floor Area'}
+              </p>
+              <p className="text-xl font-bold text-success-600 dark:text-success-400">
+                {(roomArea / 10000).toFixed(2)} m²
+              </p>
+            </div>
+            <div className="p-3 bg-warning-50 dark:bg-warning-900/20 rounded-lg">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
+                {t('maxHeight') || 'Maximum Height'}
+              </p>
+              <p className="text-xl font-bold text-warning-600 dark:text-warning-400">
+                {parseFloat(room.height || 0).toFixed(0)} cm
+              </p>
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
+
+      {/* Product Compatibility */}
+      {Object.keys(productCompatibility).length > 0 && (
+        <Card variant="glass" className="mb-6">
+          <Card.Body>
+            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">
+              {t('productCompatibility') || 'Product Compatibility'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Object.entries(productCompatibility).slice(0, 9).map(([productId, compat]) => {
+                const product = products.find(p => p.id === parseInt(productId));
+                if (!product) return null;
+                
+                return (
+                  <div
+                    key={productId}
+                    className={`p-3 rounded-lg border-2 ${
+                      compat.fits
+                        ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
+                        : 'bg-error-50 dark:bg-error-900/20 border-error-200 dark:border-error-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-neutral-900 dark:text-white text-sm">
+                        {product.name}
+                      </span>
+                      <Badge variant={compat.fits ? 'success' : 'error'}>
+                        {compat.fits ? t('fits') || 'Fits' : t('doesNotFit') || "Doesn't Fit"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-1">
+                      {t('dimensions')}: {compat.dimensions}
+                    </p>
+                    <p className="text-xs text-neutral-600 dark:text-neutral-400">
+                      {t('stock')}: {compat.stock} {t('units') || 'units'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+            {Object.keys(productCompatibility).length > 9 && (
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-4 text-center">
+                {t('showingFirst9Products') || 'Showing first 9 products. Use layout generator to see all.'}
+              </p>
+            )}
+          </Card.Body>
+        </Card>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

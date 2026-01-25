@@ -40,8 +40,18 @@ const Sales = () => {
   const fetchSales = async () => {
     try {
       const response = await axiosClient.get('/admin/sales');
-      setSales(response.data);
-      setFilteredSales(response.data);
+      // Ensure sales have id property
+      const salesData = Array.isArray(response.data) ? response.data : [];
+      
+      // Log first sale to debug structure
+      if (salesData.length > 0) {
+        console.log('First sale object:', salesData[0]);
+        console.log('First sale ID:', salesData[0].id);
+        console.log('First sale keys:', Object.keys(salesData[0]));
+      }
+      
+      setSales(salesData);
+      setFilteredSales(salesData);
     } catch (error) {
       console.error('Error fetching sales:', error);
       showToast(t('errorLoadingSales'), 'error');
@@ -111,11 +121,38 @@ const Sales = () => {
               </td>
             </>
           )}
-          actions={(sale) => (
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/sales/${sale.id}`)}>
-              {t('viewDetails')}
-            </Button>
-          )}
+          actions={(sale) => {
+            // Debug: Log sale object
+            console.log('Action sale object:', sale);
+            console.log('Action sale ID:', sale?.id);
+            
+            // Ensure sale has a valid ID
+            if (!sale || sale.id === undefined || sale.id === null) {
+              console.error('Sale object or ID is missing:', sale);
+              return (
+                <Button variant="ghost" size="sm" disabled>
+                  {t('viewDetails')}
+                </Button>
+              );
+            }
+            
+            const saleId = sale.id;
+            console.log('Navigating with sale ID:', saleId);
+            
+            return (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  console.log('Button clicked for sale:', sale);
+                  console.log('Sale ID to navigate:', saleId);
+                  navigate(`/sales/${saleId}`);
+                }}
+              >
+                {t('viewDetails')}
+              </Button>
+            );
+          }}
         />
       </Card>
     </div>

@@ -21,16 +21,67 @@ const SaleDetails = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSaleDetails();
-  }, [id]);
+    // Debug: Log the id parameter
+    console.log('Sale ID from URL params:', id);
+    console.log('Type of id:', typeof id);
+    
+    // Only fetch if id is available and valid
+    if (id && id !== 'undefined' && id !== 'null' && id !== undefined && id !== null) {
+      fetchSaleDetails();
+    } else {
+      console.error('Sale ID is missing or invalid from URL parameters:', id);
+      showToast('Invalid sale ID. Redirecting to sales list...', 'error');
+      setLoading(false);
+      // Redirect after a short delay
+      setTimeout(() => {
+        navigate('/sales');
+      }, 2000);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, navigate]);
 
   const fetchSaleDetails = async () => {
+    // Validate id before making request
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('Invalid sale ID:', id);
+      showToast('Invalid sale ID. Please try again.', 'error');
+      setLoading(false);
+      setTimeout(() => navigate('/sales'), 2000);
+      return;
+    }
+
     try {
+      setLoading(true);
+      console.log('Fetching sale details for ID:', id);
       const response = await axiosClient.get(`/sales/${id}`);
-      setSale(response.data);
+      
+      // Backend returns {success: true, data: {...}}
+      if (response.data && response.data.success && response.data.data) {
+        setSale(response.data.data);
+      } else if (response.data && !response.data.success) {
+        // Backend returned an error response
+        showToast(
+          response.data.message || t('errorLoadingSales'), 
+          'error'
+        );
+        setSale(null);
+      } else {
+        // Fallback: use response.data directly if structure is different
+        setSale(response.data);
+      }
     } catch (error) {
       console.error('Error fetching sale details:', error);
-      showToast(t('errorLoadingSales'), 'error');
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      
+      const errorMessage = error.response?.data?.message 
+        || error.response?.data?.error 
+        || error.message 
+        || t('errorLoadingSales');
+      
+      showToast(errorMessage, 'error');
+      setSale(null);
     } finally {
       setLoading(false);
     }
