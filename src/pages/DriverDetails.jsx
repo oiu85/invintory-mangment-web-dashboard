@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { getDriverAnalytics, getDriverInventory, getDriverSettlement } from '../api/driverApi';
+import { getDriverAnalytics, getDriverInventory, getDriverSettlement, performInventory, getInventoryHistory } from '../api/driverApi';
 import Card from '../components/ui/Card';
 import Skeleton from '../components/ui/Skeleton';
 import Badge from '../components/ui/Badge';
@@ -12,6 +12,7 @@ import Tabs from '../components/ui/Tabs';
 import PageHeader from '../components/layout/PageHeader';
 import ErrorState from '../components/ui/ErrorState';
 import { SalesLineChart, RevenueBarChart } from '../components/Chart';
+import InventoryHistory from '../components/InventoryHistory';
 import { 
   Users, 
   TrendingUp, 
@@ -43,8 +44,11 @@ const DriverDetails = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+  const [isInventoryConfirmModalOpen, setIsInventoryConfirmModalOpen] = useState(false);
   const [inventoryData, setInventoryData] = useState(null);
   const [loadingInventory, setLoadingInventory] = useState(false);
+  const [inventoryHistory, setInventoryHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [inventoryPeriod, setInventoryPeriod] = useState({
     start_date: new Date(new Date().setDate(new Date().getDate() - new Date().getDay())).toISOString().split('T')[0], // Start of week
     end_date: new Date().toISOString().split('T')[0], // Today
@@ -53,6 +57,7 @@ const DriverDetails = () => {
 
   useEffect(() => {
     fetchAnalytics();
+    fetchInventoryHistory();
   }, [id]);
 
   const fetchAnalytics = async () => {
@@ -70,19 +75,52 @@ const DriverDetails = () => {
     }
   };
 
-  const handleInventory = async () => {
+  const fetchInventoryHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const response = await getInventoryHistory(id);
+      setInventoryHistory(response.data?.data || response.data || []);
+    } catch (err) {
+      console.error('Error fetching inventory history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleInventory = () => {
+    setIsInventoryConfirmModalOpen(true);
+  };
+
+  const confirmPerformInventory = async () => {
     try {
       setLoadingInventory(true);
-      const response = await getDriverInventory(
+      setIsInventoryConfirmModalOpen(false);
+      
+      await performInventory(id, {
+        period_start_date: inventoryPeriod.start_date,
+        period_end_date: inventoryPeriod.end_date,
+        notes: null
+      });
+      
+      showToast(t('inventoryPerformedSuccess') || 'Inventory performed successfully. Driver earnings reset to 0.', 'success');
+      
+      // Refresh analytics and history
+      await fetchAnalytics();
+      await fetchInventoryHistory();
+      
+      // Fetch the inventory data to show in modal
+      const inventoryResponse = await getDriverInventory(
         id,
         inventoryPeriod.start_date,
         inventoryPeriod.end_date
       );
-      setInventoryData(response.data);
+      
+      // Show the inventory data
+      setInventoryData(inventoryResponse.data);
       setIsInventoryModalOpen(true);
     } catch (err) {
-      console.error('Error fetching inventory:', err);
-      showToast(t('errorLoadingData') || 'Error loading inventory', 'error');
+      console.error('Error performing inventory:', err);
+      showToast(err.response?.data?.message || t('errorPerformingInventory') || 'Error performing inventory', 'error');
     } finally {
       setLoadingInventory(false);
     }
@@ -418,36 +456,58 @@ const DriverDetails = () => {
               <div>
                 {recent_sales && recent_sales.length > 0 ? (
                   <Table
-                    headers={[t('invoiceNumber'), t('customerName'), t('items'), t('totalAmount'), t('date'), t('actions')]}
+                    headers={[t('invoiceNumber'), t('customerName'), t('items'), t('totalAmount'), t('customPrice'), t('date'), t('actions')]}
                     data={recent_sales}
-                    renderRow={(sale) => (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          {sale.invoice_number}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
-                          {sale.customer_name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
-                          <Badge variant="secondary">{sale.items_count}</Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-success-600 dark:text-success-400">
-                          ${parseFloat(sale.total_amount || 0).toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
-                          {new Date(sale.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/sales/${sale.id}`)}
-                          >
-                            {t('view')}
-                          </Button>
-                        </td>
-                      </>
-                    )}
+                    renderRow={(sale) => {
+                      // Calculate average custom price markup
+                      const items = sale.items || [];
+                      const customPriceItems = items.filter(item => item.custom_price != null);
+                      const avgMarkup = customPriceItems.length > 0
+                        ? customPriceItems.reduce((sum, item) => {
+                            const originalPrice = parseFloat(item.original_price || item.price || 0);
+                            const customPrice = parseFloat(item.custom_price || 0);
+                            return sum + ((customPrice - originalPrice) / originalPrice * 100);
+                          }, 0) / customPriceItems.length
+                        : null;
+                      
+                      return (
+                        <>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            {sale.invoice_number}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                            {sale.customer_name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                            <Badge variant="secondary">{sale.items_count}</Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-success-600 dark:text-success-400">
+                            ${parseFloat(sale.total_amount || 0).toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                            {avgMarkup != null ? (
+                              <Badge variant={avgMarkup > 0 ? 'success' : 'warning'}>
+                                {avgMarkup > 0 ? '+' : ''}{avgMarkup.toFixed(1)}%
+                              </Badge>
+                            ) : (
+                              <span className="text-neutral-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                            {new Date(sale.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 dark:text-neutral-100">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/sales/${sale.id}`)}
+                            >
+                              {t('view')}
+                            </Button>
+                          </td>
+                        </>
+                      );
+                    }}
                   />
                 ) : (
                   <div className="text-center py-12">
@@ -690,7 +750,23 @@ const DriverDetails = () => {
             <div className="flex items-end">
               <Button
                 variant="primary"
-                onClick={handleInventory}
+                onClick={async () => {
+                  try {
+                    setLoadingInventory(true);
+                    const inventoryResponse = await getDriverInventory(
+                      id,
+                      inventoryPeriod.start_date,
+                      inventoryPeriod.end_date
+                    );
+                    setInventoryData(inventoryResponse.data);
+                    showToast(t('inventoryRefreshed') || 'Inventory data refreshed', 'success');
+                  } catch (err) {
+                    console.error('Error fetching inventory:', err);
+                    showToast(err.response?.data?.message || t('errorLoadingData') || 'Error loading inventory data', 'error');
+                  } finally {
+                    setLoadingInventory(false);
+                  }
+                }}
                 loading={loadingInventory}
                 className="w-full"
               >
@@ -829,6 +905,71 @@ const DriverDetails = () => {
           )}
         </div>
       </Modal>
+
+      {/* Inventory Confirmation Modal */}
+      <Modal
+        isOpen={isInventoryConfirmModalOpen}
+        onClose={() => setIsInventoryConfirmModalOpen(false)}
+        title={t('confirmPerformInventory') || 'Confirm Perform Inventory'}
+      >
+        <div className="space-y-6">
+          <div className="bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg p-4">
+            <p className="text-warning-800 dark:text-warning-200 text-sm">
+              {t('inventoryWarning') || 'This will reset the driver\'s earnings to 0 and save the current inventory snapshot. This action cannot be undone.'}
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                {t('periodStartDate')}
+              </label>
+              <Input
+                type="date"
+                value={inventoryPeriod.start_date}
+                onChange={(e) => setInventoryPeriod({ ...inventoryPeriod, start_date: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                {t('periodEndDate')}
+              </label>
+              <Input
+                type="date"
+                value={inventoryPeriod.end_date}
+                onChange={(e) => setInventoryPeriod({ ...inventoryPeriod, end_date: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-4 justify-end pt-4 border-t border-neutral-200 dark:border-neutral-700">
+            <Button
+              variant="secondary"
+              onClick={() => setIsInventoryConfirmModalOpen(false)}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={confirmPerformInventory}
+              loading={loadingInventory}
+              icon={ClipboardList}
+            >
+              {t('confirm')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Inventory History Section */}
+      {activeTab === 'stock' && (
+        <div className="mt-6">
+          <InventoryHistory
+            history={inventoryHistory}
+            loading={loadingHistory}
+          />
+        </div>
+      )}
     </div>
   );
 };

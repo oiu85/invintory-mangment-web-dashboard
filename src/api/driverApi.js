@@ -44,3 +44,13 @@ export const getDriverSettlement = (id, startDate, endDate, periodType = 'week')
     responseType: 'blob'
   });
 };
+
+export const performInventory = (id, periodData) => {
+  return axiosClient.post(`/admin/drivers/${id}/perform-inventory`, periodData);
+};
+
+export const getInventoryHistory = (id, page = 1, perPage = 15) => {
+  return axiosClient.get(`/admin/drivers/${id}/inventory-history`, {
+    params: { page, per_page: perPage }
+  });
+};

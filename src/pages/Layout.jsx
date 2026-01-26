@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import AppShell from '../components/layout/AppShell';
 import PageContainer from '../components/layout/PageContainer';
+import fcmService from '../services/fcmService';
 
 const Layout = () => {
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     // Load from localStorage if available
@@ -17,6 +20,15 @@ const Layout = () => {
   useEffect(() => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(sidebarCollapsed));
   }, [sidebarCollapsed]);
+
+  // Initialize FCM when user is logged in
+  useEffect(() => {
+    if (user) {
+      fcmService.initialize().catch((error) => {
+        console.error('Failed to initialize FCM:', error);
+      });
+    }
+  }, [user]);
 
   const handleToggleCollapse = () => {
     setSidebarCollapsed(!sidebarCollapsed);

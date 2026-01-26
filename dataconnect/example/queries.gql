@@ -1,0 +1,34 @@
+mutation CreateNewTask @auth(level: USER) {
+  task_insert(data: {
+    createdAt_expr: "request.time",
+    status: "pending",
+    taskType: "delivery",
+    description: "New task",
+    pickupLocation: "Warehouse",
+    deliveryLocation: "Customer"
+  })
+}
+
+query ListAvailableDrivers @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  drivers(where: {status: {eq: "available"}}) {
+    id
+    name
+    vehicleType
+    currentLatitude
+    currentLongitude
+  }
+}
+
+mutation UpdateTaskStatus($taskId: UUID!, $status: String!) @auth(level: USER) {
+  task_update(key: {id: $taskId}, data: {status: $status})
+}
+
+query ListWarehouseRooms @auth(level: USER) {
+  warehouseRooms {
+    id
+    roomName
+    roomType
+    capacity
+    temperatureSetting
+  }
+}

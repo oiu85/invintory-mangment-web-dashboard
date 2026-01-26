@@ -1,0 +1,49 @@
+type User @table {
+  username: String!
+  email: String!
+  passwordHash: String!
+  role: String!
+  firstName: String
+  lastName: String
+  lastLogin: Timestamp
+}
+
+type Driver @table {
+  name: String!
+  driverID: String!
+  status: String!
+  currentLatitude: Float
+  currentLongitude: Float
+  currentTask: Task
+  vehicleType: String
+}
+
+type Task @table {
+  taskType: String!
+  status: String!
+  createdAt: Timestamp!
+  description: String
+  pickupLocation: String
+  deliveryLocation: String
+  assignedDriver: Driver
+  completedAt: Timestamp
+}
+
+type WarehouseRoom @table {
+  roomName: String!
+  layoutData: String!
+  capacity: Int!
+  roomType: String
+  temperatureSetting: Float
+}
+
+type InventoryItem @table {
+  itemName: String!
+  itemSKU: String!
+  quantity: Int!
+  currentRoom: WarehouseRoom!
+  description: String
+  weight: Float
+  dimensions: String
+  optimalStorageLocation: String
+}

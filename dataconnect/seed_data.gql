@@ -1,0 +1,82 @@
+mutation CreateDemoData @auth(level: USER_ANON, insecureReason: "This operation is safe to expose to all logged in users.") @transaction {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      username: "demouser1",
+      email: "demouser1@example.com",
+      passwordHash: "hash1",
+      role: "admin"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      username: "demouser2",
+      email: "demouser2@example.com",
+      passwordHash: "hash2",
+      role: "member"
+    }
+  ])
+  warehouseRoom_insertMany(data: [
+    {
+      id: "650e8400-e29b-41d4-a716-446655440002",
+      roomName: "Room A",
+      layoutData: "layoutA",
+      capacity: 100
+    },
+    {
+      id: "750e8400-e29b-41d4-a716-446655440003",
+      roomName: "Room B",
+      layoutData: "layoutB",
+      capacity: 200
+    }
+  ])
+  inventoryItem_insertMany(data: [
+    {
+      id: "850e8400-e29b-41d4-a716-446655440004",
+      itemName: "Item 1",
+      itemSKU: "SKU001",
+      quantity: 10,
+      currentRoom: {id: "650e8400-e29b-41d4-a716-446655440002"},
+      currentRoomId: "650e8400-e29b-41d4-a716-446655440002"
+    },
+    {
+      id: "950e8400-e29b-41d4-a716-446655440005",
+      itemName: "Item 2",
+      itemSKU: "SKU002",
+      quantity: 5,
+      currentRoom: {id: "750e8400-e29b-41d4-a716-446655440003"},
+      currentRoomId: "750e8400-e29b-41d4-a716-446655440003"
+    }
+  ])
+  driver_insertMany(data: [
+    {
+      id: "a50e8400-e29b-41d4-a716-446655440006",
+      name: "Driver 1",
+      driverID: "Driver001",
+      status: "active"
+    },
+    {
+      id: "b50e8400-e29b-41d4-a716-446655440007",
+      name: "Driver 2",
+      driverID: "Driver002",
+      status: "inactive"
+    }
+  ])
+  task_insertMany(data: [
+    {
+      id: "c50e8400-e29b-41d4-a716-446655440008",
+      taskType: "Delivery",
+      status: "pending",
+      createdAt: "2024-01-01T00:00:00Z",
+      assignedDriver: {id: "a50e8400-e29b-41d4-a716-446655440006"},
+      assignedDriverId: "a50e8400-e29b-41d4-a716-446655440006"
+    },
+    {
+      id: "d50e8400-e29b-41d4-a716-446655440009",
+      taskType: "Pickup",
+      status: "completed",
+      createdAt: "2024-01-02T00:00:00Z",
+      assignedDriver: {id: "b50e8400-e29b-41d4-a716-446655440007"},
+      assignedDriverId: "b50e8400-e29b-41d4-a716-446655440007"
+    }
+  ])
+}

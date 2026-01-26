@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LogOut, User, Menu, Moon, Sun, Languages, ChevronDown, Search } from 'lucide-react';
 import Button from './ui/Button';
+import NotificationBell from './NotificationBell';
 
 const Navbar = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
@@ -61,6 +62,7 @@ const Navbar = ({ onMenuClick }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationBell />
             <button
               onClick={toggleLanguage}
               className="flex items-center gap-2 px-3 py-2 text-neutral-700 dark:text-neutral-300 hover:bg-gradient-to-r hover:from-primary-50 hover:to-secondary-50 dark:hover:from-primary-900/20 dark:hover:to-secondary-900/20 rounded-lg transition-all duration-200 font-semibold text-sm hover:shadow-sm"

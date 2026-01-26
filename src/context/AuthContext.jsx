@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
+import fcmService from '../services/fcmService';
 
 const AuthContext = createContext();
 
@@ -53,11 +54,22 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('auth_token', token);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
+
+    // Register FCM token after successful login
+    try {
+      await fcmService.initialize();
+    } catch (error) {
+      console.error('Failed to initialize FCM after login:', error);
+    }
+
     return response.data;
   };
 
   const logout = async () => {
     try {
+      // Unregister FCM token before logout
+      await fcmService.unregisterToken();
+      
       await axiosClient.post('/logout');
     } catch (error) {
       console.error('Logout error:', error);

@@ -59,6 +59,7 @@ const Sidebar = ({ onClose, isCollapsed: externalCollapsed, onToggleCollapse }) 
       items: [
         { path: '/drivers', label: t('drivers'), icon: Users },
         { path: '/assign-stock', label: t('assignStock'), icon: ArrowRightLeft },
+        { path: '/stock-orders', label: t('stockOrders') || 'Stock Orders', icon: Package },
       ]
     },
     {
