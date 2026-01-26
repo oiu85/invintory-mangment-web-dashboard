@@ -13,8 +13,26 @@ const NotificationBell = () => {
   const { showToast } = useToast();
 
   useEffect(() => {
+    // Load notifications from localStorage on mount
+    const loadNotifications = () => {
+      try {
+        const saved = localStorage.getItem('notifications');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setNotifications(parsed);
+          const unread = parsed.filter((n) => !n.isRead).length;
+          setUnreadCount(unread);
+        }
+      } catch (error) {
+        console.error('Failed to load notifications from localStorage:', error);
+      }
+    };
+
+    loadNotifications();
+
     // Set up FCM message callback
     fcmService.setOnMessageCallback((payload) => {
+      console.log('Notification received in NotificationBell:', payload);
       handleNewNotification(payload);
     });
 
@@ -41,7 +59,18 @@ const NotificationBell = () => {
       isRead: false,
     };
 
-    setNotifications((prev) => [notification, ...prev]);
+    setNotifications((prev) => {
+      const updated = [notification, ...prev];
+      // Keep only last 100 notifications
+      const limited = updated.slice(0, 100);
+      // Save to localStorage
+      try {
+        localStorage.setItem('notifications', JSON.stringify(limited));
+      } catch (error) {
+        console.error('Failed to save notifications to localStorage:', error);
+      }
+      return limited;
+    });
     setUnreadCount((prev) => prev + 1);
 
     // Show toast notification
@@ -49,16 +78,32 @@ const NotificationBell = () => {
   };
 
   const markAsRead = (notificationId) => {
-    setNotifications((prev) =>
-      prev.map((n) =>
+    setNotifications((prev) => {
+      const updated = prev.map((n) =>
         n.id === notificationId ? { ...n, isRead: true } : n
-      )
-    );
+      );
+      // Save to localStorage
+      try {
+        localStorage.setItem('notifications', JSON.stringify(updated));
+      } catch (error) {
+        console.error('Failed to save notifications to localStorage:', error);
+      }
+      return updated;
+    });
     setUnreadCount((prev) => Math.max(0, prev - 1));
   };
 
   const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, isRead: true }));
+      // Save to localStorage
+      try {
+        localStorage.setItem('notifications', JSON.stringify(updated));
+      } catch (error) {
+        console.error('Failed to save notifications to localStorage:', error);
+      }
+      return updated;
+    });
     setUnreadCount(0);
   };
 

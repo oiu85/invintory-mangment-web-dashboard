@@ -27,6 +27,7 @@ const RoomDetails = lazy(() => import('./pages/RoomDetails'));
 const RoomLayout = lazy(() => import('./pages/RoomLayout'));
 const ProductDimensions = lazy(() => import('./pages/ProductDimensions'));
 const StockOrders = lazy(() => import('./pages/StockOrders'));
+const Notifications = lazy(() => import('./pages/Notifications'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -75,8 +76,9 @@ function App() {
                       <Route path="rooms" element={<Rooms />} />
                       <Route path="rooms/:id" element={<RoomDetails />} />
                       <Route path="rooms/:id/generate-layout" element={<RoomLayout />} />
-                      <Route path="product-dimensions" element={<ProductDimensions />} />
-                      <Route path="stock-orders" element={<StockOrders />} />
+                    <Route path="product-dimensions" element={<ProductDimensions />} />
+                    <Route path="stock-orders" element={<StockOrders />} />
+                    <Route path="notifications" element={<Notifications />} />
                     </Route>
                   </Routes>
                 </Suspense>

@@ -11,7 +11,6 @@ const Layout = () => {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    // Load from localStorage if available
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved ? JSON.parse(saved) : false;
   });
@@ -22,12 +21,62 @@ const Layout = () => {
   }, [sidebarCollapsed]);
 
   // Initialize FCM when user is logged in
+  // Note: This is a fallback initialization. Primary initialization happens in AuthContext after login
   useEffect(() => {
-    if (user) {
-      fcmService.initialize().catch((error) => {
-        console.error('Failed to initialize FCM:', error);
-      });
+    if (!user) {
+      return;
     }
+
+    // Only initialize if not already initialized
+    // This prevents duplicate initialization when user state changes
+    if (fcmService.isInitialized) {
+      // If already initialized but token registration failed, retry
+      const status = fcmService.getRegistrationStatus();
+      if (status.status === 'failed' && fcmService.getToken()) {
+        console.log('FCM: Retrying token registration in Layout...');
+        fcmService.resetRegistrationState();
+        fcmService.retryRegistration().catch((error) => {
+          console.error('FCM: Failed to retry registration in Layout:', error);
+        });
+      }
+      return;
+    }
+
+    // Initialize FCM after a short delay to ensure page is loaded
+    const initFCM = async () => {
+      // Wait for DOM to be ready
+      if (document.readyState === 'loading') {
+        await new Promise((resolve) => {
+          document.addEventListener('DOMContentLoaded', resolve);
+        });
+      }
+
+      // Small delay to ensure everything is ready
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      try {
+        await fcmService.initialize();
+        
+        // After initialization, if we have a token and user is authenticated, register it
+        if (fcmService.getToken()) {
+          console.log('FCM: Registering token in Layout after initialization...');
+          await fcmService.retryRegistration();
+        }
+      } catch (error) {
+        console.error('Failed to initialize FCM:', error);
+      }
+    };
+
+    initFCM();
+
+    // Cleanup: unregister token on logout
+    return () => {
+      if (!user) {
+        fcmService.unregisterToken().catch((error) => {
+          console.error('FCM: Failed to unregister token on cleanup:', error);
+        });
+      }
+    };
   }, [user]);
 
   const handleToggleCollapse = () => {
@@ -70,4 +119,3 @@ const Layout = () => {
 };
 
 export default Layout;
-

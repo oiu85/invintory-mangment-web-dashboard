@@ -55,11 +55,26 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
 
-    // Register FCM token after successful login
+    // Initialize FCM and register token after successful login
+    // Use a small delay to ensure token is set in localStorage
     try {
+      // Wait a bit for localStorage to be ready
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      
+      // Initialize FCM (this will get the token)
       await fcmService.initialize();
+      
+      // If FCM is already initialized and has a token, register it
+      // This handles the case where FCM was initialized before login
+      if (fcmService.getToken()) {
+        console.log('FCM: Registering token after login...');
+        // Reset registration state and retry
+        fcmService.resetRegistrationState();
+        await fcmService.retryRegistration();
+      }
     } catch (error) {
       console.error('Failed to initialize FCM after login:', error);
+      // Don't fail login if FCM fails
     }
 
     return response.data;

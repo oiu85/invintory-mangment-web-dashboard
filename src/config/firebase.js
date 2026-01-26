@@ -18,14 +18,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Cloud Messaging
+// CRITICAL: Do NOT initialize messaging at module load
+// It must be initialized AFTER service worker is registered
 let messaging = null;
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  try {
-    messaging = getMessaging(app);
-  } catch (error) {
-    console.error('Failed to initialize Firebase Messaging:', error);
+
+// Function to initialize messaging (call after service worker is ready)
+export function initializeMessaging() {
+  if (!messaging && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    try {
+      messaging = getMessaging(app);
+      return messaging;
+    } catch (error) {
+      console.error('[FCM] Messaging init failed:', error.message);
+      return null;
+    }
   }
+  return messaging;
 }
 
+// Export messaging (will be null until initializeMessaging() is called)
 export { messaging, getToken, onMessage };
 export default app;

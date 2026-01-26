@@ -18,7 +18,8 @@ import {
   Home,
   Boxes,
   Settings,
-  BarChart3
+  BarChart3,
+  Bell
 } from 'lucide-react';
 
 const Sidebar = ({ onClose, isCollapsed: externalCollapsed, onToggleCollapse }) => {
@@ -60,6 +61,7 @@ const Sidebar = ({ onClose, isCollapsed: externalCollapsed, onToggleCollapse }) 
         { path: '/drivers', label: t('drivers'), icon: Users },
         { path: '/assign-stock', label: t('assignStock'), icon: ArrowRightLeft },
         { path: '/stock-orders', label: t('stockOrders') || 'Stock Orders', icon: Package },
+        { path: '/notifications', label: t('notifications') || 'Notifications', icon: Bell },
       ]
     },
     {

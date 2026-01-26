@@ -16,34 +16,75 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+  firebase.initializeApp(firebaseConfig);
+} catch (error) {
+  console.error('[SW] Firebase init error:', error);
+}
 
 // Retrieve an instance of Firebase Messaging
-const messaging = firebase.messaging();
+let messaging = null;
+try {
+  messaging = firebase.messaging();
+} catch (error) {
+  console.error('[SW] Messaging error:', error);
+}
 
 // Handle background messages
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  
-  const notificationTitle = payload.notification?.title || 'New Notification';
-  const notificationOptions = {
-    body: payload.notification?.body || '',
-    icon: '/favicon.png',
-    badge: '/favicon.png',
-    tag: payload.messageId,
-    data: payload.data,
-  };
+if (messaging) {
+  messaging.onBackgroundMessage((payload) => {
+    const notificationTitle = payload.notification?.title || 'New Notification';
+    const notificationOptions = {
+      body: payload.notification?.body || '',
+      icon: '/favicon.png',
+      badge: '/favicon.png',
+      tag: payload.messageId,
+      data: payload.data,
+    };
 
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+  });
+}
+
+// Handle service worker installation
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+// Handle service worker activation
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    Promise.all([
+      clients.claim(),
+      self.registration.pushManager.getSubscription().catch(() => null)
+    ])
+  );
+});
+
+// Handle push events (required for FCM)
+self.addEventListener('push', (event) => {
+  if (event.data) {
+    const data = event.data.json();
+    
+    const notificationTitle = data.notification?.title || 'New Notification';
+    const notificationOptions = {
+      body: data.notification?.body || '',
+      icon: '/favicon.png',
+      badge: '/favicon.png',
+      tag: data.messageId,
+      data: data.data,
+    };
+
+    event.waitUntil(
+      self.registration.showNotification(notificationTitle, notificationOptions)
+    );
+  }
 });
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
-  console.log('[firebase-messaging-sw.js] Notification click received.');
-  
   event.notification.close();
 
-  // This looks to see if the current is already open and focuses if it is
   event.waitUntil(
     clients.matchAll().then((clientList) => {
       for (const client of clientList) {
