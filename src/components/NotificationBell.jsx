@@ -2,8 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import fcmService from '../services/fcmService';
-import Card from './ui/Card';
-import Badge from './ui/Badge';
 
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
@@ -30,9 +28,9 @@ const NotificationBell = () => {
 
     loadNotifications();
 
-    // Set up FCM message callback
+    // Setup FCM message listener
     fcmService.setOnMessageCallback((payload) => {
-      console.log('Notification received in NotificationBell:', payload);
+      console.log('Notification received:', payload);
       handleNewNotification(payload);
     });
 
