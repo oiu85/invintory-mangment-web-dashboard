@@ -189,11 +189,11 @@ const StockOrders = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="warning" icon={Clock}>Pending</Badge>;
+        return <Badge variant="warning" icon={Clock}>{t('pending') || 'Pending'}</Badge>;
       case 'approved':
-        return <Badge variant="success" icon={CheckCircle2}>Approved</Badge>;
+        return <Badge variant="success" icon={CheckCircle2}>{t('approved') || 'Approved'}</Badge>;
       case 'rejected':
-        return <Badge variant="error" icon={XCircle}>Rejected</Badge>;
+        return <Badge variant="error" icon={XCircle}>{t('rejected') || 'Rejected'}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }

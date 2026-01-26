@@ -30,6 +30,15 @@ export const AuthProvider = ({ children }) => {
       const response = await axiosClient.get('/me');
       setUser(response.data);
       localStorage.setItem('user', JSON.stringify(response.data));
+      
+      // Initialize FCM after successful user fetch
+      try {
+        console.log('🔔 Initializing FCM service for logged-in user');
+        await fcmService.initialize();
+        console.log('✅ FCM service initialized successfully');
+      } catch (fcmError) {
+        console.error('❌ Failed to initialize FCM after user fetch:', fcmError);
+      }
     } catch (error) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user');

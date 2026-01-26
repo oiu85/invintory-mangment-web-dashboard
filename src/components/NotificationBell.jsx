@@ -11,28 +11,45 @@ const NotificationBell = () => {
   const { showToast } = useToast();
 
   useEffect(() => {
+    console.log('🔔 NotificationBell component mounted, setting up...');
+    
     // Load notifications from localStorage on mount
     const loadNotifications = () => {
       try {
         const saved = localStorage.getItem('notifications');
+        console.log('📥 Loading notifications from localStorage:', saved ? 'Found' : 'Empty');
         if (saved) {
           const parsed = JSON.parse(saved);
-          setNotifications(parsed);
-          const unread = parsed.filter((n) => !n.isRead).length;
+          console.log('📊 Parsed notifications count:', parsed.length);
+          // Convert timestamp strings back to Date objects
+          const notificationsWithDates = parsed.map((n) => ({
+            ...n,
+            timestamp: new Date(n.timestamp),
+          }));
+          setNotifications(notificationsWithDates);
+          const unread = notificationsWithDates.filter((n) => !n.isRead).length;
           setUnreadCount(unread);
+          console.log('✅ Loaded', parsed.length, 'notifications,', unread, 'unread');
+        } else {
+          console.log('ℹ️ No saved notifications found');
         }
       } catch (error) {
-        console.error('Failed to load notifications from localStorage:', error);
+        console.error('❌ Failed to load notifications from localStorage:', error);
       }
     };
 
     loadNotifications();
 
     // Setup FCM message listener
+    console.log('🔧 Setting up FCM message callback...');
     fcmService.setOnMessageCallback((payload) => {
-      console.log('Notification received:', payload);
+      console.log('🔔 📬 NOTIFICATION RECEIVED in NotificationBell!', payload);
+      console.log('Title:', payload.notification?.title);
+      console.log('Body:', payload.notification?.body);
+      console.log('Data:', payload.data);
       handleNewNotification(payload);
     });
+    console.log('✅ FCM message callback registered');
 
     // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
@@ -44,10 +61,14 @@ const NotificationBell = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      console.log('🔄 NotificationBell component unmounting, cleaning up...');
     };
   }, []);
 
   const handleNewNotification = (payload) => {
+    console.log('📝 Processing new notification...');
+    console.log('Payload:', payload);
+    
     const notification = {
       id: payload.messageId || Date.now().toString(),
       title: payload.notification?.title || 'New Notification',
@@ -57,22 +78,35 @@ const NotificationBell = () => {
       isRead: false,
     };
 
+    console.log('✨ Created notification object:', notification);
+
     setNotifications((prev) => {
+      console.log('📊 Current notifications count:', prev.length);
       const updated = [notification, ...prev];
       // Keep only last 100 notifications
       const limited = updated.slice(0, 100);
+      console.log('💾 Saving to localStorage, new count:', limited.length);
+      
       // Save to localStorage
       try {
         localStorage.setItem('notifications', JSON.stringify(limited));
+        console.log('✅ Successfully saved to localStorage');
       } catch (error) {
-        console.error('Failed to save notifications to localStorage:', error);
+        console.error('❌ Failed to save notifications to localStorage:', error);
       }
       return limited;
     });
-    setUnreadCount((prev) => prev + 1);
+    
+    setUnreadCount((prev) => {
+      const newCount = prev + 1;
+      console.log('🔢 Updating unread count from', prev, 'to', newCount);
+      return newCount;
+    });
 
     // Show toast notification
+    console.log('🍞 Showing toast notification');
     showToast(notification.title, 'info');
+    console.log('✅ Notification processing complete');
   };
 
   const markAsRead = (notificationId) => {
@@ -106,17 +140,30 @@ const NotificationBell = () => {
   };
 
   const formatTimeAgo = (date) => {
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
+    try {
+      // Ensure date is a Date object
+      const dateObj = date instanceof Date ? date : new Date(date);
+      
+      // Check if date is valid
+      if (isNaN(dateObj.getTime())) {
+        return 'Invalid date';
+      }
 
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+      const now = new Date();
+      const diff = now - dateObj;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 7) return `${days}d ago`;
+      return dateObj.toLocaleDateString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Unknown';
+    }
   };
 
   return (

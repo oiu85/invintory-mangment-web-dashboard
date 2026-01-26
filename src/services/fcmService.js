@@ -51,10 +51,12 @@ class FCMService {
       // Register token with backend
       await this.registerToken();
 
-      // Setup foreground message listener
+      // Setup foreground message listener immediately
+      // Note: The callback can be set later via setOnMessageCallback
       this.setupMessageListener();
 
       this.isInitialized = true;
+      console.log('🎉 FCM Service fully initialized and ready');
       return true;
     } catch (error) {
       console.error('❌ FCM initialization failed:', error);
@@ -121,26 +123,45 @@ class FCMService {
   }
 
   setupMessageListener() {
+    console.log('🎧 Setting up foreground message listener...');
     onMessage(messaging, (payload) => {
-      console.log('📬 Foreground message received:', payload);
+      console.log('===================================');
+      console.log('📬 FOREGROUND MESSAGE RECEIVED!');
+      console.log('===================================');
+      console.log('Full payload:', payload);
+      console.log('Title:', payload.notification?.title);
+      console.log('Body:', payload.notification?.body);
+      console.log('Data:', payload.data);
+      console.log('Has callback:', !!this.onMessageCallback);
       
       if (this.onMessageCallback) {
+        console.log('🎯 Calling registered callback...');
         this.onMessageCallback(payload);
+        console.log('✅ Callback executed');
+      } else {
+        console.warn('⚠️ No callback registered for foreground messages!');
       }
 
       // Show browser notification if app is in focus
       if (Notification.permission === 'granted') {
+        console.log('🔔 Showing browser notification');
         new Notification(payload.notification?.title || 'New Notification', {
           body: payload.notification?.body || '',
           icon: '/logo.png',
           data: payload.data,
         });
+      } else {
+        console.log('🔕 Notification permission not granted:', Notification.permission);
       }
+      console.log('===================================');
     });
+    console.log('✅ Foreground message listener set up');
   }
 
   setOnMessageCallback(callback) {
+    console.log('📝 Registering message callback in FCM service');
     this.onMessageCallback = callback;
+    console.log('✅ Callback registered, type:', typeof callback);
   }
 
   getToken() {
