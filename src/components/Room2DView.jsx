@@ -387,6 +387,47 @@ const Room2DView = ({ room, placements = [], compartments = [], layout = null, d
             ];
             const color = colors[index % colors.length];
 
+            // --- Distance line calculations (in original cm) ---
+            const rawX = parseFloat(placement.x_position || 0);
+            const rawY = parseFloat(placement.y_position || 0);
+            const rawW = parseFloat(placement.width || 0);
+            const rawD = parseFloat(placement.depth || 0);
+            const rawRoomW = parseFloat(room?.width || 0);
+            const rawRoomD = parseFloat(room?.depth || 0);
+
+            const distLeft = rawX;
+            const distRight = rawRoomW - (rawX + rawW);
+            const distBack = rawY;
+            const distFront = rawRoomD - (rawY + rawD);
+
+            const useLeftWall = distLeft <= distRight;
+            const sideDistCm = useLeftWall ? distLeft : distRight;
+
+            const useBackWall = distBack <= distFront;
+            const fbDistCm = useBackWall ? distBack : distFront;
+
+            // Scaled wall coordinates
+            const wallLeft = viewBox.padding + pan.x;
+            const wallRight = viewBox.padding + pan.x + roomWidth;
+            const wallTop = viewBox.padding + pan.y;
+            const wallBottom = viewBox.padding + pan.y + roomDepth;
+
+            // Horizontal line endpoints (to nearest side wall)
+            const hLineY = placement.y + displayDepth / 2;
+            const hLineX1 = useLeftWall ? wallLeft : (placement.x + displayWidth);
+            const hLineX2 = useLeftWall ? placement.x : wallRight;
+            const hLineMidX = (hLineX1 + hLineX2) / 2;
+            const hLineVisible = sideDistCm > 0.5;
+
+            // Vertical line endpoints (to nearest front/back wall)
+            const vLineX = placement.x + displayWidth / 2;
+            const vLineY1 = useBackWall ? wallTop : (placement.y + displayDepth);
+            const vLineY2 = useBackWall ? placement.y : wallBottom;
+            const vLineMidY = (vLineY1 + vLineY2) / 2;
+            const vLineVisible = fbDistCm > 0.5;
+
+            const lineFontSize = Math.max(7, 9 / zoom);
+
             return (
               <g key={index}>
                 {/* Placement rectangle */}
@@ -439,6 +480,84 @@ const Room2DView = ({ room, placements = [], compartments = [], layout = null, d
                   stroke={isDark ? "#FFFFFF" : "#1F2937"}
                   strokeWidth="1"
                 />
+
+                {/* === Distance measurement lines (same color as product) === */}
+
+                {/* Horizontal line to nearest side wall */}
+                {hLineVisible && (
+                  <g className="pointer-events-none">
+                    <line
+                      x1={hLineX1} y1={hLineY}
+                      x2={hLineX2} y2={hLineY}
+                      stroke={color}
+                      strokeWidth={Math.max(1, 1.5 / zoom)}
+                      strokeDasharray="3,2"
+                    />
+                    {/* End caps */}
+                    <line x1={hLineX1} y1={hLineY - 3} x2={hLineX1} y2={hLineY + 3} stroke={color} strokeWidth={Math.max(1, 1.5 / zoom)} />
+                    <line x1={hLineX2} y1={hLineY - 3} x2={hLineX2} y2={hLineY + 3} stroke={color} strokeWidth={Math.max(1, 1.5 / zoom)} />
+                    {/* Label background */}
+                    <rect
+                      x={hLineMidX - 18}
+                      y={hLineY - lineFontSize - 4}
+                      width="36"
+                      height={lineFontSize + 4}
+                      fill={isDark ? "#1F2937" : "#FFFFFF"}
+                      fillOpacity="0.85"
+                      rx="2"
+                    />
+                    {/* Label text */}
+                    <text
+                      x={hLineMidX}
+                      y={hLineY - 4}
+                      textAnchor="middle"
+                      dominantBaseline="auto"
+                      fill={color}
+                      fontWeight="bold"
+                      style={{ fontSize: `${lineFontSize}px` }}
+                    >
+                      {sideDistCm.toFixed(0)} cm
+                    </text>
+                  </g>
+                )}
+
+                {/* Vertical line to nearest front/back wall */}
+                {vLineVisible && (
+                  <g className="pointer-events-none">
+                    <line
+                      x1={vLineX} y1={vLineY1}
+                      x2={vLineX} y2={vLineY2}
+                      stroke={color}
+                      strokeWidth={Math.max(1, 1.5 / zoom)}
+                      strokeDasharray="3,2"
+                    />
+                    {/* End caps */}
+                    <line x1={vLineX - 3} y1={vLineY1} x2={vLineX + 3} y2={vLineY1} stroke={color} strokeWidth={Math.max(1, 1.5 / zoom)} />
+                    <line x1={vLineX - 3} y1={vLineY2} x2={vLineX + 3} y2={vLineY2} stroke={color} strokeWidth={Math.max(1, 1.5 / zoom)} />
+                    {/* Label background */}
+                    <rect
+                      x={vLineX + 4}
+                      y={vLineMidY - lineFontSize / 2 - 2}
+                      width="36"
+                      height={lineFontSize + 4}
+                      fill={isDark ? "#1F2937" : "#FFFFFF"}
+                      fillOpacity="0.85"
+                      rx="2"
+                    />
+                    {/* Label text */}
+                    <text
+                      x={vLineX + 6}
+                      y={vLineMidY + 1}
+                      textAnchor="start"
+                      dominantBaseline="middle"
+                      fill={color}
+                      fontWeight="bold"
+                      style={{ fontSize: `${lineFontSize}px` }}
+                    >
+                      {fbDistCm.toFixed(0)} cm
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
@@ -476,6 +595,14 @@ const Room2DView = ({ room, placements = [], compartments = [], layout = null, d
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
             <span className="text-gray-600 dark:text-gray-400">Position (X, Y)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5">
+              <div className="w-2 h-0.5 bg-blue-500 rounded"></div>
+              <div className="w-2 h-0.5 bg-green-500 rounded"></div>
+              <div className="w-2 h-0.5 bg-purple-500 rounded"></div>
+            </div>
+            <span className="text-gray-600 dark:text-gray-400">Wall Distance (cm) - matches product color</span>
           </div>
           {doorData && (
             <div className="flex items-center gap-2">

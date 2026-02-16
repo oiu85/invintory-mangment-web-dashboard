@@ -4,6 +4,17 @@ import { OrbitControls, PerspectiveCamera, Text, Html } from '@react-three/drei'
 import * as THREE from 'three';
 import { useTheme } from '../context/ThemeContext';
 
+// Shared color hash function - generates a consistent color for each product_id
+const PRODUCT_COLORS = [
+  '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', 
+  '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16',
+  '#A855F7', '#F43F5E', '#0EA5E9', '#22C55E', '#EAB308'
+];
+const hashColor = (id) => {
+  const hash = ((id * 2654435761) >>> 0) % PRODUCT_COLORS.length;
+  return PRODUCT_COLORS[hash];
+};
+
 // Individual item component (single layer in a stack)
 const ItemBox = ({ placement, roomHeight, layerIndex, totalLayers }) => {
   const meshRef = useRef();
@@ -24,19 +35,6 @@ const ItemBox = ({ placement, roomHeight, layerIndex, totalLayers }) => {
 
   // Color based on product_id hash for consistent, unique colors per product
   const productId = parseInt(placement.product_id || 0);
-  
-  // Generate consistent color from product_id using hash
-  const hashColor = (id) => {
-    const colors = [
-      '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', 
-      '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16',
-      '#A855F7', '#F43F5E', '#0EA5E9', '#22C55E', '#EAB308'
-    ];
-    // Use a simple hash to distribute colors
-    const hash = ((id * 2654435761) >>> 0) % colors.length;
-    return colors[hash];
-  };
-  
   const baseColor = hashColor(productId);
   
   // Slightly darker for lower layers, lighter for upper layers
@@ -118,6 +116,142 @@ const ItemStack = ({ placements, roomHeight, productId }) => {
           totalLayers={sortedPlacements.length}
         />
       ))}
+    </group>
+  );
+};
+
+// Distance measurement lines component - renders two colored lines per placement
+// Lines match the product's color from the grid. One to nearest side wall, one to nearest front/back wall.
+const DistanceLines = ({ placement, roomWidth, roomDepth }) => {
+  const itemX = parseFloat(placement.x_position || 0);
+  const itemY = parseFloat(placement.y_position || 0);
+  const itemW = parseFloat(placement.width || 0);
+  const itemD = parseFloat(placement.depth || 0);
+  const productId = parseInt(placement.product_id || 0);
+
+  // Use the same color as the product box on the grid
+  const lineColor = hashColor(productId);
+
+  // Distances in cm to each wall
+  const distLeft = itemX;
+  const distRight = roomWidth - (itemX + itemW);
+  const distBack = itemY;
+  const distFront = roomDepth - (itemY + itemD);
+
+  // Pick nearest side wall (left or right)
+  const useLeft = distLeft <= distRight;
+  const sideDist = useLeft ? distLeft : distRight;
+
+  // Pick nearest front/back wall
+  const useBack = distBack <= distFront;
+  const fbDist = useBack ? distBack : distFront;
+
+  // Convert to meters for 3D scene
+  const mItemX = itemX / 100;
+  const mItemY = itemY / 100;
+  const mItemW = itemW / 100;
+  const mItemD = itemD / 100;
+  const mRoomW = roomWidth / 100;
+  const mRoomD = roomDepth / 100;
+
+  // Floor-level Y position (just above the ground)
+  const floorY = 0.005;
+
+  // --- Horizontal line (to nearest side wall) ---
+  const itemCenterZ = mItemY + mItemD / 2;
+  let hLineStartX, hLineEndX;
+  if (useLeft) {
+    hLineStartX = 0;
+    hLineEndX = mItemX;
+  } else {
+    hLineStartX = mItemX + mItemW;
+    hLineEndX = mRoomW;
+  }
+  const hLineLen = Math.abs(hLineEndX - hLineStartX);
+  const hLineMidX = (hLineStartX + hLineEndX) / 2;
+
+  // --- Vertical line (to nearest front/back wall) ---
+  const itemCenterX = mItemX + mItemW / 2;
+  let vLineStartZ, vLineEndZ;
+  if (useBack) {
+    vLineStartZ = 0;
+    vLineEndZ = mItemY;
+  } else {
+    vLineStartZ = mItemY + mItemD;
+    vLineEndZ = mRoomD;
+  }
+  const vLineLen = Math.abs(vLineEndZ - vLineStartZ);
+  const vLineMidZ = (vLineStartZ + vLineEndZ) / 2;
+
+  const minLen = 0.001;
+
+  return (
+    <group>
+      {/* Horizontal line to nearest side wall (product color) */}
+      {hLineLen > minLen && (
+        <group>
+          <mesh position={[hLineMidX, floorY, itemCenterZ]}>
+            <boxGeometry args={[hLineLen, 0.006, 0.006]} />
+            <meshStandardMaterial
+              color={lineColor}
+              emissive={lineColor}
+              emissiveIntensity={0.6}
+            />
+          </mesh>
+          <mesh position={[hLineStartX, floorY, itemCenterZ]}>
+            <boxGeometry args={[0.006, 0.006, 0.03]} />
+            <meshStandardMaterial color={lineColor} emissive={lineColor} emissiveIntensity={0.6} />
+          </mesh>
+          <mesh position={[hLineEndX, floorY, itemCenterZ]}>
+            <boxGeometry args={[0.006, 0.006, 0.03]} />
+            <meshStandardMaterial color={lineColor} emissive={lineColor} emissiveIntensity={0.6} />
+          </mesh>
+          <Text
+            position={[hLineMidX, floorY + 0.04, itemCenterZ]}
+            fontSize={Math.min(0.06, hLineLen * 0.3)}
+            color="#FFFFFF"
+            anchorX="center"
+            anchorY="bottom"
+            outlineWidth={0.01}
+            outlineColor={lineColor}
+          >
+            {sideDist.toFixed(1)} cm
+          </Text>
+        </group>
+      )}
+
+      {/* Vertical line to nearest front/back wall (product color) */}
+      {vLineLen > minLen && (
+        <group>
+          <mesh position={[itemCenterX, floorY, vLineMidZ]}>
+            <boxGeometry args={[0.006, 0.006, vLineLen]} />
+            <meshStandardMaterial
+              color={lineColor}
+              emissive={lineColor}
+              emissiveIntensity={0.6}
+            />
+          </mesh>
+          <mesh position={[itemCenterX, floorY, vLineStartZ]}>
+            <boxGeometry args={[0.03, 0.006, 0.006]} />
+            <meshStandardMaterial color={lineColor} emissive={lineColor} emissiveIntensity={0.6} />
+          </mesh>
+          <mesh position={[itemCenterX, floorY, vLineEndZ]}>
+            <boxGeometry args={[0.03, 0.006, 0.006]} />
+            <meshStandardMaterial color={lineColor} emissive={lineColor} emissiveIntensity={0.6} />
+          </mesh>
+          <Text
+            position={[itemCenterX + 0.04, floorY + 0.04, vLineMidZ]}
+            fontSize={Math.min(0.06, vLineLen * 0.3)}
+            color="#FFFFFF"
+            anchorX="left"
+            anchorY="bottom"
+            outlineWidth={0.01}
+            outlineColor={lineColor}
+          >
+            {fbDist.toFixed(1)} cm
+          </Text>
+        </group>
+      )}
     </group>
   );
 };
@@ -431,17 +565,23 @@ const Scene = ({ room, placements, door = null }) => {
         roomHeight={parseFloat(room?.height || 0)}
       />
 
-      {/* Placements grouped into stacks */}
+      {/* Placements grouped into stacks with distance measurement lines */}
       {groupedStacks.length > 0 ? (
-        groupedStacks.map(([key, stackPlacements], index) => {
+        groupedStacks.map(([key, stackPlacements]) => {
           const firstPlacement = stackPlacements[0];
           return (
-            <ItemStack
-              key={key}
-              placements={stackPlacements}
-              roomHeight={parseFloat(room?.height || 0)}
-              productId={firstPlacement.product_id}
-            />
+            <group key={key}>
+              <ItemStack
+                placements={stackPlacements}
+                roomHeight={parseFloat(room?.height || 0)}
+                productId={firstPlacement.product_id}
+              />
+              <DistanceLines
+                placement={firstPlacement}
+                roomWidth={parseFloat(room?.width || 0)}
+                roomDepth={parseFloat(room?.depth || 0)}
+              />
+            </group>
           );
         })
       ) : null}
@@ -675,6 +815,14 @@ const Room3DView = ({ room, placements = [], door = null }) => {
         <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-50/50 to-secondary-50/50 dark:from-primary-900/20 dark:to-secondary-900/20 rounded-lg">
           <div className="w-4 h-4 bg-gradient-primary rounded border border-neutral-300 dark:border-neutral-600 shadow-sm"></div>
           <span className="text-neutral-600 dark:text-neutral-400 font-semibold">Product Stacks (Layers)</span>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-red-50/50 to-red-100/50 dark:from-red-900/20 dark:to-red-800/20 rounded-lg">
+          <div className="flex gap-0.5">
+            <div className="w-2 h-0.5 bg-blue-500 rounded"></div>
+            <div className="w-2 h-0.5 bg-green-500 rounded"></div>
+            <div className="w-2 h-0.5 bg-purple-500 rounded"></div>
+          </div>
+          <span className="text-neutral-600 dark:text-neutral-400 font-semibold">Wall Distance (cm) - matches product color</span>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-success-50/50 to-primary-50/50 dark:from-success-900/20 dark:to-primary-900/20 rounded-lg">
           <div className="text-xs text-neutral-500 dark:text-neutral-500 font-medium">
